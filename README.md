@@ -96,6 +96,8 @@ npm run dev
 
 - [START_HERE.md](./START_HERE.md) - Getting started guide
 - [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) - Deployment instructions
+- [QUICK_DEPLOY.md](./QUICK_DEPLOY.md) - Quick deployment to Render
+- [VERCEL_DEPLOY.md](./VERCEL_DEPLOY.md) - Deploy to Vercel (Frontend + Backend options)
 - [ENV_VARIABLES_GUIDE.md](./ENV_VARIABLES_GUIDE.md) - Environment variables reference
 - [Frontend README](./collaboration-frontend/README.md) - Frontend specific documentation
 - [Server Checklist](./collaboration-server/SERVER_CHECKLIST.md) - Backend setup checklist
