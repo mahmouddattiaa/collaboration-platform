@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Socket.io Auth Test</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>Socket.io Authentication Test</h1>
+    
+    <div>
+        <h3>Step 1: Get JWT Token</h3>
+        <button onclick="login()">Login & Get Token</button>
+        <p id="tokenDisplay">No token yet</p>
+    </div>
+    
+    <div>
+        <h3>Step 2: Connect with Token</h3>
+        <button onclick="connectWithAuth()">Connect to Socket.io</button>
+        <button onclick="connectWithoutAuth()">Connect WITHOUT Token (should fail)</button>
+    </div>
+    
+    <div>
+        <h3>Connection Status:</h3>
+        <p id="status">Not connected</p>
+    </div>
+
+    <script>
+        let jwtToken = null;
+        let socket = null;
+
+        // Step 1: Login and get JWT token
+        async function login() {
+            try {
+                const response = await fetch('http://localhost:4001/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'john@example.com',
+                        password: '123456',
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    jwtToken = data.token;
+                    document.getElementById('tokenDisplay').textContent = `Token: ${jwtToken.substring(0, 50)}...`;
+                } else {
+                    document.getElementById('tokenDisplay').textContent = 'Login failed';
+                }
+            } catch (error) {
+                document.getElementById('tokenDisplay').textContent = 'Login error: ' + error.message;
+            }
+        }
+
+        // Step 2: Connect WITH authentication
+        function connectWithAuth() {
+            if (!jwtToken) {
+                alert('Please login first to get a token!');
+                return;
+            }
+
+            socket = io('http://localhost:4001', {
+                auth: {
+                    token: jwtToken
+                }
+            });
+
+            socket.on('connect', () => {
+                document.getElementById('status').textContent = '✅ Connected with authentication!';
+                console.log('Connected with auth:', socket.id);
+            });
+
+            socket.on('connect_error', (error) => {
+                document.getElementById('status').textContent = '❌ Connection failed: ' + error.message;
+                console.log('Connection error:', error.message);
+            });
+        }
+
+        // Step 3: Connect WITHOUT authentication (should fail)
+        function connectWithoutAuth() {
+            socket = io('http://localhost:4001'); // No auth token
+
+            socket.on('connect', () => {
+                document.getElementById('status').textContent = '✅ Connected WITHOUT auth (this should not happen!)';
+            });
+
+            socket.on('connect_error', (error) => {
+                document.getElementById('status').textContent = '❌ Connection rejected (expected): ' + error.message;
+                console.log('Expected rejection:', error.message);
+            });
+        }
+    </script>
+</body>
+</html>
