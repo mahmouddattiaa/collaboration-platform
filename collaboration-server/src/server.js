@@ -82,18 +82,18 @@ app.use(
     origin: function (origin, callback) {
       // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
-      
+
       const allowedOrigins = [
         "http://localhost:3000",
         "http://localhost:5173",
-        "https://collaboration-frontend.vercel.app", // Stable production URL - never changes!
+        "https://collaboration-frontend-seven.vercel.app", // Stable production URL - never changes!
       ];
-      
+
       // Allow all Vercel preview deployments (for testing)
-      if (origin.includes('vercel.app') || allowedOrigins.includes(origin)) {
+      if (origin.includes("vercel.app") || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error('Not allowed by CORS'));
+        callback(new Error("Not allowed by CORS"));
       }
     },
     credentials: true,
