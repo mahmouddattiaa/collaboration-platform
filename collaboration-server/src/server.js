@@ -79,7 +79,13 @@ const authLimiter = rateLimit({
 //middleware
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://localhost:5173", "null"], // Allow frontend, vite dev, and file://
+    origin: [
+      "http://localhost:3000", 
+      "http://localhost:5173", 
+      "https://collaboration-frontend-e2lo6538b-mahmouddattiaas-projects.vercel.app",
+      "https://*.vercel.app",  // Allow all Vercel preview deployments
+      "null"
+    ], // Allow frontend, vite dev, Vercel production and file://
     credentials: true,
   })
 );
