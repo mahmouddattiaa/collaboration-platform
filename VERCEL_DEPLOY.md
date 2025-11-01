@@ -78,8 +78,8 @@ Edit `collaboration-frontend/src/config/api.ts`:
 ```typescript
 // Update these URLs with your backend URL
 const isProduction = import.meta.env.PROD;
-const BACKEND_URL = isProduction 
-  ? "https://your-backend.onrender.com"  // Your Render backend URL
+const BACKEND_URL = isProduction
+  ? "https://your-backend.onrender.com" // Your Render backend URL
   : "http://localhost:3001";
 
 export const API_BASE_URL = BACKEND_URL;
@@ -88,6 +88,7 @@ export const SOCKET_URL = BACKEND_URL;
 ```
 
 Commit and push:
+
 ```bash
 git add .
 git commit -m "Configure production API URLs"
@@ -126,9 +127,9 @@ const io = new Server(server, {
     origin: [
       "http://localhost:3000",
       "http://localhost:5173",
-      "https://your-project.vercel.app",           // Add this
-      "https://your-project-git-main.vercel.app",  // Add this
-      "https://*.vercel.app",                      // Allow all Vercel preview deployments
+      "https://your-project.vercel.app", // Add this
+      "https://your-project-git-main.vercel.app", // Add this
+      "https://*.vercel.app", // Allow all Vercel preview deployments
     ],
     methods: ["GET", "POST"],
     credentials: true,
@@ -151,6 +152,7 @@ app.use(
 ```
 
 Push changes:
+
 ```bash
 git add .
 git commit -m "Add Vercel URLs to CORS"
@@ -166,6 +168,7 @@ Render will auto-redeploy your backend!
 Visit: `https://your-project.vercel.app`
 
 Test all features:
+
 - ✅ User registration/login
 - ✅ Create and join rooms
 - ✅ Real-time chat
@@ -219,7 +222,7 @@ Test all features:
 module.exports = app;
 
 // Only start server if not in serverless environment
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
   const PORT = process.env.PORT || 3001;
   server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
@@ -228,6 +231,7 @@ if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
 ```
 
 3. **Deploy**:
+
 ```bash
 vercel --prod
 ```
@@ -279,6 +283,7 @@ NODE_ENV=production
 ## 🔄 Automatic Deployments
 
 Vercel automatically deploys:
+
 - ✅ **Production**: Every push to `main` branch
 - ✅ **Preview**: Every pull request
 - ✅ **Instant**: No waiting, deploys in seconds
@@ -302,6 +307,7 @@ git push
 4. Automatic HTTPS in minutes!
 
 **Recommended Domain Registrars**:
+
 - Namecheap: ~$10/year
 - Google Domains: ~$12/year
 - Cloudflare: ~$10/year
@@ -325,7 +331,7 @@ npm install @vercel/analytics
 In `collaboration-frontend/src/main.tsx`:
 
 ```typescript
-import { inject } from '@vercel/analytics';
+import { inject } from "@vercel/analytics";
 
 inject();
 ```
@@ -337,6 +343,7 @@ inject();
 ### Enable Edge Network:
 
 Vercel automatically uses:
+
 - ✅ Global CDN
 - ✅ Automatic caching
 - ✅ Brotli compression
@@ -345,6 +352,7 @@ Vercel automatically uses:
 ### Speed up Backend:
 
 1. **Keep it awake** (for Render):
+
    - Use UptimeRobot: https://uptimerobot.com
    - Ping every 5 minutes
 
@@ -390,6 +398,7 @@ Output Directory: dist
 ### Free Tier Includes:
 
 **Vercel**:
+
 - ✅ Unlimited deployments
 - ✅ 100GB bandwidth/month
 - ✅ Automatic HTTPS
@@ -397,11 +406,13 @@ Output Directory: dist
 - ✅ Analytics
 
 **MongoDB Atlas**:
+
 - ✅ 512MB storage
 - ✅ Shared cluster
 - ✅ Perfect for small apps
 
 **Render**:
+
 - ✅ 750 hours/month
 - ✅ Automatic deploys
 - ✅ HTTPS included
@@ -424,6 +435,7 @@ git push -u origin development
 ```
 
 **Vercel automatically creates**:
+
 - `main` → Production: `https://app.vercel.app`
 - `staging` → Staging: `https://app-staging.vercel.app`
 - `development` → Dev: `https://app-dev.vercel.app`
@@ -469,6 +481,7 @@ Before deploying:
 ## 💡 Pro Tips
 
 1. **Use Vercel CLI** for faster deployments:
+
    ```bash
    npm i -g vercel
    vercel --prod
