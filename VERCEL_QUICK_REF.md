@@ -41,6 +41,7 @@ vercel --prod
 ## 🎯 Two Ways to Deploy
 
 ### Method 1: Vercel Dashboard (Easiest)
+
 1. Go to https://vercel.com
 2. Click "New Project"
 3. Import GitHub repo
@@ -49,6 +50,7 @@ vercel --prod
 6. ✅ Done!
 
 ### Method 2: Vercel CLI (Faster)
+
 ```bash
 cd collaboration-frontend
 vercel --prod
@@ -86,8 +88,8 @@ Add to `collaboration-server/src/server.js`:
 ```javascript
 origin: [
   "https://your-project.vercel.app",
-  "https://*.vercel.app",  // All preview deployments
-]
+  "https://*.vercel.app", // All preview deployments
+];
 ```
 
 ---
@@ -104,6 +106,7 @@ git push
 ```
 
 Or manual:
+
 ```bash
 vercel --prod
 ```
@@ -113,16 +116,19 @@ vercel --prod
 ## 🐛 Quick Troubleshooting
 
 **Blank page?**
+
 - Check build succeeded
 - Verify `dist` folder is output directory
 - Check browser console for errors
 
 **API not working?**
+
 - Verify backend URL in `api.ts`
 - Check CORS includes Vercel domain
 - Check environment variables set
 
 **Build failing?**
+
 - Check all dependencies in `package.json`
 - Verify build command is correct
 - Check build logs in Vercel dashboard

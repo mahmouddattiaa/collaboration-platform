@@ -5,6 +5,7 @@
 Before we start, make sure you have:
 
 1. **MongoDB Atlas Account** (Free)
+
    - Sign up: https://www.mongodb.com/cloud/atlas/register
    - Create a cluster
    - Get connection string
@@ -125,8 +126,8 @@ Update the backend URL to your production URL:
 
 ```typescript
 const isProduction = import.meta.env.PROD;
-const BACKEND_URL = isProduction 
-  ? "https://collaboration-backend.vercel.app"  // YOUR BACKEND URL HERE
+const BACKEND_URL = isProduction
+  ? "https://collaboration-backend.vercel.app" // YOUR BACKEND URL HERE
   : "http://localhost:3001";
 
 export const API_BASE_URL = BACKEND_URL;
@@ -196,8 +197,8 @@ app.use(
     origin: [
       "http://localhost:3000",
       "http://localhost:5173",
-      "https://collaboration-frontend.vercel.app",  // ADD YOUR FRONTEND URL
-      "https://*.vercel.app",  // Allow all Vercel preview deployments
+      "https://collaboration-frontend.vercel.app", // ADD YOUR FRONTEND URL
+      "https://*.vercel.app", // Allow all Vercel preview deployments
     ],
     credentials: true,
   })
@@ -231,6 +232,7 @@ Visit your frontend URL: `https://collaboration-frontend.vercel.app`
 Test these features:
 
 ### ✅ Should Work:
+
 - User registration
 - User login
 - Create room
@@ -239,6 +241,7 @@ Test these features:
 - JWT authentication
 
 ### ❌ Won't Work (Expected):
+
 - Real-time chat (WebSockets disabled)
 - Live presence
 - Real-time updates
@@ -253,6 +256,7 @@ Your app is now deployed on Vercel!
 - **Backend**: https://your-backend.vercel.app
 
 ### Vercel Dashboard:
+
 - View deployments: https://vercel.com/dashboard
 - Check logs for debugging
 - Monitor performance
@@ -289,16 +293,19 @@ Or connect to GitHub in Vercel Dashboard for **automatic deployments**!
 ## 🐛 Troubleshooting
 
 ### Backend deployment fails:
+
 - Check all environment variables are set
 - Verify MongoDB connection string is correct
 - Check Vercel logs: `vercel logs`
 
 ### Frontend can't connect to backend:
+
 - Verify backend URL in `api.ts`
 - Check CORS includes frontend URL
 - Test backend health: `https://your-backend.vercel.app/health`
 
 ### MongoDB connection error:
+
 - Check IP whitelist includes `0.0.0.0/0`
 - Verify connection string format
 - Check user credentials
@@ -324,6 +331,7 @@ Or connect to GitHub in Vercel Dashboard for **automatic deployments**!
 ---
 
 **Need help?** Check:
+
 - [VERCEL_FULLSTACK.md](./VERCEL_FULLSTACK.md) - Detailed guide
 - [WEBSOCKET_DISABLED.md](./WEBSOCKET_DISABLED.md) - Feature limitations
 - Vercel Docs: https://vercel.com/docs
