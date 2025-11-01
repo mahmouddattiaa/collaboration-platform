@@ -7,6 +7,7 @@ All WebSocket/Socket.io functionality has been commented out in the backend to e
 ### Files Modified:
 
 1. **`collaboration-server/src/server.js`**
+
    - ✅ Socket.io imports commented out
    - ✅ HTTP server commented out (using Express only)
    - ✅ Socket.io configuration commented out
@@ -111,12 +112,16 @@ To restore Socket.io functionality for local development or non-Vercel deploymen
 4. Change server initialization:
    ```javascript
    const server = http.createServer(app);
-   const io = socketIo(server, { /* config */ });
+   const io = socketIo(server, {
+     /* config */
+   });
    ```
 5. Restore all socket event handlers
 6. Change server.listen:
    ```javascript
-   server.listen(PORT, () => { /* ... */ });
+   server.listen(PORT, () => {
+     /* ... */
+   });
    ```
 
 ---

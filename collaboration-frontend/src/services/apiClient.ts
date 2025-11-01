@@ -83,6 +83,7 @@ class ApiClient {
   }
 }
 
-// Create and export API client instance
-export const apiClient = new ApiClient('http://localhost:4001');
+// Create and export API client instance - Use API_BASE_URL from config
+import { API_BASE_URL } from '@/config/api';
+export const apiClient = new ApiClient(API_BASE_URL);
 export default apiClient;

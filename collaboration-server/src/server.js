@@ -80,11 +80,11 @@ const authLimiter = rateLimit({
 app.use(
   cors({
     origin: [
-      "http://localhost:3000", 
-      "http://localhost:5173", 
+      "http://localhost:3000",
+      "http://localhost:5173",
       "https://collaboration-frontend-e2lo6538b-mahmouddattiaas-projects.vercel.app",
-      "https://*.vercel.app",  // Allow all Vercel preview deployments
-      "null"
+      "https://*.vercel.app", // Allow all Vercel preview deployments
+      "null",
     ], // Allow frontend, vite dev, Vercel production and file://
     credentials: true,
   })
@@ -284,7 +284,7 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 
 // VERCEL DEPLOYMENT: Export app for serverless, only start server locally
-if (process.env.VERCEL !== '1') {
+if (process.env.VERCEL !== "1") {
   app.listen(PORT, () => {
     console.log("");
     console.log("🚀 ================================");
@@ -308,7 +308,7 @@ module.exports = app;
 module.exports = app;
 
 // OPTIMIZATION 12: Graceful shutdown (only for local development)
-if (process.env.VERCEL !== '1') {
+if (process.env.VERCEL !== "1") {
   process.on("SIGTERM", async () => {
     console.log("⚠️  SIGTERM received, shutting down gracefully...");
 
@@ -327,7 +327,7 @@ if (process.env.VERCEL !== '1') {
 }
 
 // OPTIMIZATION 13: Memory monitoring (optional - for debugging)
-if (process.env.NODE_ENV === "development" && process.env.VERCEL !== '1') {
+if (process.env.NODE_ENV === "development" && process.env.VERCEL !== "1") {
   setInterval(() => {
     const memUsage = process.memoryUsage();
     console.log(

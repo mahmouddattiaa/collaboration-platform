@@ -91,7 +91,7 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    const newSocket = io('http://localhost:4001', {
+    const newSocket = io(SOCKET_URL, {
       withCredentials: true,
       auth: {
         token: `Bearer ${token}`

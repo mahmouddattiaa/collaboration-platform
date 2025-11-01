@@ -5,12 +5,14 @@
 **WebSocket/Socket.io features have been disabled** for Vercel deployment since Vercel's serverless functions don't support persistent connections.
 
 ### Features That Will NOT Work:
+
 - ❌ Real-time chat
 - ❌ Live presence indicators
 - ❌ Real-time whiteboard collaboration
 - ❌ Instant notifications
 
 ### Features That WILL Work:
+
 - ✅ User authentication (login/register)
 - ✅ Room creation and management
 - ✅ API endpoints
@@ -106,8 +108,8 @@ Edit `collaboration-frontend/src/config/api.ts`:
 
 ```typescript
 const isProduction = import.meta.env.PROD;
-const BACKEND_URL = isProduction 
-  ? "https://your-backend.vercel.app"  // Your Vercel backend URL
+const BACKEND_URL = isProduction
+  ? "https://your-backend.vercel.app" // Your Vercel backend URL
   : "http://localhost:3001";
 
 export const API_BASE_URL = BACKEND_URL;
@@ -117,6 +119,7 @@ export const SOCKET_URL = BACKEND_URL;
 ```
 
 Commit and push:
+
 ```bash
 git add .
 git commit -m "Update API URLs for Vercel backend"
@@ -163,8 +166,8 @@ app.use(
     origin: [
       "http://localhost:3000",
       "http://localhost:5173",
-      "https://collaboration-frontend.vercel.app",  // Your frontend URL
-      "https://*.vercel.app",  // All Vercel preview deployments
+      "https://collaboration-frontend.vercel.app", // Your frontend URL
+      "https://*.vercel.app", // All Vercel preview deployments
     ],
     credentials: true,
   })
@@ -172,6 +175,7 @@ app.use(
 ```
 
 Commit and push:
+
 ```bash
 git add .
 git commit -m "Add Vercel frontend URL to CORS"
@@ -187,6 +191,7 @@ Vercel will auto-redeploy your backend!
 Visit your frontend URL: `https://collaboration-frontend.vercel.app`
 
 ### Working Features:
+
 - ✅ User registration
 - ✅ User login
 - ✅ Create rooms
@@ -196,6 +201,7 @@ Visit your frontend URL: `https://collaboration-frontend.vercel.app`
 - ✅ Database operations
 
 ### Not Working (Expected):
+
 - ❌ Real-time chat (Socket.io disabled)
 - ❌ Live presence
 - ❌ Real-time updates
@@ -221,11 +227,13 @@ git push
 ## 🌐 Custom Domains
 
 ### For Frontend:
+
 1. Vercel Dashboard → Your Frontend Project → Settings → Domains
 2. Add: `www.myapp.com`
 3. Configure DNS as instructed
 
 ### For Backend:
+
 1. Vercel Dashboard → Your Backend Project → Settings → Domains
 2. Add: `api.myapp.com`
 3. Configure DNS
@@ -236,21 +244,25 @@ git push
 ## 📊 Environment Variables Management
 
 ### View Variables:
+
 ```bash
 vercel env ls
 ```
 
 ### Add Variable:
+
 ```bash
 vercel env add VARIABLE_NAME
 ```
 
 ### Remove Variable:
+
 ```bash
 vercel env rm VARIABLE_NAME
 ```
 
 After adding/removing variables, redeploy:
+
 ```bash
 vercel --prod
 ```
@@ -260,35 +272,42 @@ vercel --prod
 ## 🐛 Troubleshooting
 
 ### Backend: "Cannot find module"
+
 **Solution**: Make sure all dependencies are in `package.json`:
+
 ```bash
 cd collaboration-server
 npm install --save express mongoose cors dotenv helmet compression express-rate-limit
 ```
 
 ### Backend: MongoDB connection timeout
-**Solution**: 
+
+**Solution**:
+
 1. Check MongoDB IP whitelist includes `0.0.0.0/0`
 2. Verify connection string in Vercel env variables
 3. Make sure user credentials are correct
 
 ### Frontend: Blank page
+
 **Solution**:
+
 1. Check browser console for errors
 2. Verify build succeeded in Vercel dashboard
 3. Check API URL is correct in config
 
 ### CORS errors
+
 **Solution**: Add your Vercel URLs to CORS in backend:
+
 ```javascript
-origin: [
-  "https://your-frontend.vercel.app",
-  "https://*.vercel.app",
-]
+origin: ["https://your-frontend.vercel.app", "https://*.vercel.app"];
 ```
 
 ### API calls failing
+
 **Solution**:
+
 1. Verify backend deployed successfully
 2. Check backend URL in frontend config
 3. Test backend directly: `https://your-backend.vercel.app/health`
@@ -317,16 +336,19 @@ collaboration-platform/
 If you need real-time features, consider:
 
 ### Option 1: Backend on Render + Frontend on Vercel
+
 - Deploy backend to Render.com (supports WebSockets)
 - Keep frontend on Vercel
 - **Guide**: See [VERCEL_DEPLOY.md](./VERCEL_DEPLOY.md)
 
 ### Option 2: Backend on Railway + Frontend on Vercel
+
 - Deploy backend to Railway.app (supports WebSockets)
 - Keep frontend on Vercel
 - Similar setup to Render
 
 ### Option 3: Use Pusher/Ably for Real-time
+
 - Replace Socket.io with Pusher Channels
 - Works with Vercel serverless
 - Requires code refactoring
@@ -345,12 +367,14 @@ If you need real-time features, consider:
 ## 🎯 Summary
 
 ✅ **Pros**:
+
 - Everything on one platform
 - Super fast global CDN
 - Automatic deployments
 - Free tier generous
 
 ❌ **Cons**:
+
 - No WebSocket support
 - No real-time features
 - Serverless limitations

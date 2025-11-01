@@ -18,6 +18,7 @@ collaboration-platform/
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Node.js (v16 or higher)
 - npm or yarn
 - MongoDB (for backend database)
@@ -25,6 +26,7 @@ collaboration-platform/
 ### Installation
 
 1. **Clone the repository**
+
 ```bash
 git clone <your-repository-url>
 cd collaboration-platform
@@ -33,6 +35,7 @@ cd collaboration-platform
 2. **Install dependencies**
 
 For both frontend and backend:
+
 ```bash
 cd collaboration-frontend
 npm install
@@ -46,6 +49,7 @@ cd ..
 Copy the `.env.example` files and configure your environment variables:
 
 **Frontend** (`collaboration-frontend/.env`):
+
 ```bash
 cd collaboration-frontend
 copy .env.example .env
@@ -53,6 +57,7 @@ copy .env.example .env
 ```
 
 **Backend** (`collaboration-server/.env`):
+
 ```bash
 cd collaboration-server
 copy .env.example .env
@@ -62,6 +67,7 @@ copy .env.example .env
 ### Running the Application
 
 **Option 1: Run both frontend and backend together**
+
 ```bash
 run-all.bat
 ```
@@ -69,11 +75,13 @@ run-all.bat
 **Option 2: Run separately**
 
 Frontend only:
+
 ```bash
 run-frontend.bat
 ```
 
 Backend only:
+
 ```bash
 run-backend.bat
 ```
@@ -81,12 +89,14 @@ run-backend.bat
 **Option 3: Manual start**
 
 Terminal 1 (Backend):
+
 ```bash
 cd collaboration-server
 npm start
 ```
 
 Terminal 2 (Frontend):
+
 ```bash
 cd collaboration-frontend
 npm run dev
@@ -105,6 +115,7 @@ npm run dev
 ## 🛠️ Tech Stack
 
 ### Frontend
+
 - React 18
 - TypeScript
 - Vite
@@ -112,6 +123,7 @@ npm run dev
 - Socket.io Client
 
 ### Backend
+
 - Node.js
 - Express
 - MongoDB
@@ -133,6 +145,7 @@ npm run dev
 ## 🔧 Development
 
 ### Frontend Development
+
 ```bash
 cd collaboration-frontend
 npm run dev        # Start dev server
@@ -141,6 +154,7 @@ npm run preview    # Preview production build
 ```
 
 ### Backend Development
+
 ```bash
 cd collaboration-server
 npm start          # Start server
@@ -150,6 +164,7 @@ npm run dev        # Start with nodemon (if configured)
 ## 📋 Available Scripts
 
 Check the following files for detailed script information:
+
 - [RUN_SCRIPTS_README.md](./RUN_SCRIPTS_README.md)
 - [DEPLOYMENT_CHECKLIST.md](./DEPLOYMENT_CHECKLIST.md)
 

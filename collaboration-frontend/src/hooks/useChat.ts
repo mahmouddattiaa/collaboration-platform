@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '@/contexts/AuthContext';
+import { SOCKET_URL } from '@/config/api';
 
 export function useChat(roomId?: string) {
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -14,7 +15,7 @@ export function useChat(roomId?: string) {
   // Socket connection useEffect
   useEffect(() => {
     if (token) {
-      const newSocket = io('http://localhost:4001', {
+      const newSocket = io(SOCKET_URL, {
         auth: {
           token: token
         }
