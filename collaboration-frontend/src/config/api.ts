@@ -2,7 +2,7 @@
 // @ts-ignore - Vite env types
 const isProduction = import.meta.env.PROD;
 const BACKEND_URL = isProduction 
-  ? "https://collaboration-1pui9uo9p-mahmouddattiaas-projects.vercel.app"  // Updated to latest backend URL
+  ? "https://collaboration-cvx2kg18r-mahmouddattiaas-projects.vercel.app"  // Latest backend URL
   : "http://localhost:4001";
 
 export const API_BASE_URL = BACKEND_URL;
