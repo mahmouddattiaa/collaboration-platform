@@ -1,7 +1,12 @@
-// API Base URLs - Fixed to match your server
-export const API_BASE_URL = 'http://localhost:4001';
-export const COLLAB_BASE_URL = 'http://localhost:4001';
-export const SOCKET_URL = 'http://localhost:4001';
+// API Base URLs - Updated for Vercel deployment
+const isProduction = import.meta.env.PROD;
+const BACKEND_URL = isProduction 
+  ? "https://collaboration-dwrp7in53-mahmouddattiaas-projects.vercel.app"
+  : "http://localhost:4001";
+
+export const API_BASE_URL = BACKEND_URL;
+export const COLLAB_BASE_URL = BACKEND_URL;
+export const SOCKET_URL = BACKEND_URL;
 
 // Main API Endpoints
 export const API_ENDPOINTS = {
