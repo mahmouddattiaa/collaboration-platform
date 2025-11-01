@@ -92,7 +92,13 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
     const savedProjects = localStorage.getItem(`projects-${roomId}`);
     const savedStarred = localStorage.getItem(`projects-starred-${roomId}`);
     if (savedProjects) {
-      setProjects(JSON.parse(savedProjects));
+      const loadedProjects = JSON.parse(savedProjects);
+      // Migrate old projects to include phases array
+      const migratedProjects = loadedProjects.map((project: any) => ({
+        ...project,
+        phases: project.phases || []
+      }));
+      setProjects(migratedProjects);
     }
     if (savedStarred) {
       setStarredProjects(new Set(JSON.parse(savedStarred)));
@@ -936,7 +942,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
                 )}
 
                 {/* === PHASES SECTION === */}
-                {project.phases && project.phases.length > 0 && (
+                {project.phases && Array.isArray(project.phases) && project.phases.length > 0 && (
                   <div className="mb-4 space-y-2">
                     <div className="text-xs text-white/60 mb-2 flex items-center gap-2">
                       <Layers className="w-3 h-3" />
