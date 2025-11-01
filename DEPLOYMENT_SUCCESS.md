@@ -10,15 +10,15 @@ Your collaboration platform is now live on Vercel!
 
 ### Frontend (User Interface)
 
-**Production URL**: https://collaboration-frontend-5x7o8mun9-mahmouddattiaas-projects.vercel.app
+**Production URL**: https://collaboration-frontend-4ml8rqfw3-mahmouddattiaas-projects.vercel.app
 
 Visit this URL to use your app!
 
 ### Backend (API Server)
 
-**Production URL**: https://collaboration-cvx2kg18r-mahmouddattiaas-projects.vercel.app
+**Production URL**: https://collaboration-jzka51u16-mahmouddattiaas-projects.vercel.app
 
-**Health Check**: https://collaboration-cvx2kg18r-mahmouddattiaas-projects.vercel.app/health
+**Health Check**: https://collaboration-jzka51u16-mahmouddattiaas-projects.vercel.app/health
 
 ---
 
