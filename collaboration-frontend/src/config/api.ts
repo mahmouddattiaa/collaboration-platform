@@ -1,6 +1,7 @@
 // API Base URLs - Updated for Vercel deployment
-// Always use production backend URL (no conditional)
-const BACKEND_URL = "https://collaboration-jzka51u16-mahmouddattiaas-projects.vercel.app";
+// Using stable Vercel production URL - this URL never changes!
+// Format: https://[project-name].vercel.app (not the deployment-specific URLs)
+const BACKEND_URL = "https://collaboration.vercel.app";
 
 export const API_BASE_URL = BACKEND_URL;
 export const COLLAB_BASE_URL = BACKEND_URL;

@@ -86,10 +86,10 @@ app.use(
       const allowedOrigins = [
         "http://localhost:3000",
         "http://localhost:5173",
-        "https://collaboration-frontend-5x7o8mun9-mahmouddattiaas-projects.vercel.app", // Current production
+        "https://collaboration-frontend.vercel.app", // Stable production URL - never changes!
       ];
       
-      // Allow all Vercel preview deployments
+      // Allow all Vercel preview deployments (for testing)
       if (origin.includes('vercel.app') || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
