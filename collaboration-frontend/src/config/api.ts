@@ -1,9 +1,6 @@
 // API Base URLs - Updated for Vercel deployment
-// @ts-ignore - Vite env types
-const isProduction = import.meta.env.PROD;
-const BACKEND_URL = isProduction 
-  ? "https://collaboration-cvx2kg18r-mahmouddattiaas-projects.vercel.app"  // Latest backend URL
-  : "http://localhost:4001";
+// Always use production backend URL (no conditional)
+const BACKEND_URL = "https://collaboration-cvx2kg18r-mahmouddattiaas-projects.vercel.app";
 
 export const API_BASE_URL = BACKEND_URL;
 export const COLLAB_BASE_URL = BACKEND_URL;
