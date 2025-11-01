@@ -10,15 +10,28 @@ Your collaboration platform is now live on Vercel!
 
 ### Frontend (User Interface)
 
-**Production URL**: https://collaboration-frontend-4ml8rqfw3-mahmouddattiaas-projects.vercel.app
+**Production URL (Stable - Never Changes)**: https://collaboration-frontend.vercel.app
 
 Visit this URL to use your app!
 
 ### Backend (API Server)
 
-**Production URL**: https://collaboration-jzka51u16-mahmouddattiaas-projects.vercel.app
+**Production URL (Stable - Never Changes)**: https://collaboration.vercel.app
 
-**Health Check**: https://collaboration-jzka51u16-mahmouddattiaas-projects.vercel.app/health
+**Health Check**: https://collaboration.vercel.app/health
+
+---
+
+## 🎯 Important: Using Stable URLs
+
+✅ **These URLs will NEVER change** - even after redeploying!
+
+- You can deploy frontend/backend as many times as you want
+- URLs stay the same forever
+- No need to update configuration after deployments
+- No more infinite loop of URL changes!
+
+📖 See `STABLE_URLS_GUIDE.md` for detailed explanation.
 
 ---
 
