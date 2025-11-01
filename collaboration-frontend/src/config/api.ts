@@ -1,4 +1,5 @@
 // API Base URLs - Updated for Vercel deployment
+// @ts-ignore - Vite env types
 const isProduction = import.meta.env.PROD;
 const BACKEND_URL = isProduction 
   ? "https://collaboration-dwrp7in53-mahmouddattiaas-projects.vercel.app"
