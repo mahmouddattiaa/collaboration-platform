@@ -3,12 +3,34 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Plus, Trash2, Edit2, Save, X, Target, Calendar, Users, TrendingUp, 
   Clock, CheckCircle, AlertCircle, Play, Pause, Archive, Filter, Search,
-  Star, Flag, Zap, Award, Activity, BarChart3, Folder, Tag
+  Star, Flag, Zap, Award, Activity, BarChart3, Folder, Tag, List, ChevronDown,
+  ChevronRight, Circle, CheckCircle2, Layers
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+
+interface Requirement {
+  id: number;
+  title: string;
+  description: string;
+  completed: boolean;
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  assignedTo?: string;
+  dueDate?: string;
+}
+
+interface Phase {
+  id: number;
+  name: string;
+  description: string;
+  requirements: Requirement[];
+  status: 'not-started' | 'in-progress' | 'completed';
+  order: number;
+  startDate?: string;
+  endDate?: string;
+}
 
 interface Milestone {
   id: number;
@@ -34,6 +56,7 @@ interface Project {
   dueDate: string;
   teamMembers: TeamMember[];
   milestones: Milestone[];
+  phases: Phase[];
   tags: string[];
   createdAt: string;
   starred: boolean;
@@ -129,6 +152,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
         dueDate: newProjectDueDate,
         teamMembers: [],
         milestones: [],
+        phases: [],
         tags: tagsArray,
         createdAt: new Date().toLocaleString(),
         starred: false
@@ -225,6 +249,158 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
     setNewProjectDueDate(project.dueDate);
     setNewProjectTags(project.tags.join(', '));
     setShowCreateForm(true);
+  }, []);
+
+  // === PHASE MANAGEMENT ===
+  const [expandedPhases, setExpandedPhases] = useState<Set<number>>(new Set());
+  const [selectedProjectForPhases, setSelectedProjectForPhases] = useState<number | null>(null);
+
+  // Add new phase to project
+  const handleAddPhase = useCallback((projectId: number, phaseName: string, phaseDescription: string) => {
+    if (!phaseName.trim()) return;
+
+    const newPhase: Phase = {
+      id: Date.now(),
+      name: phaseName,
+      description: phaseDescription,
+      requirements: [],
+      status: 'not-started',
+      order: 0
+    };
+
+    setProjects(prev => prev.map(project => {
+      if (project.id === projectId) {
+        const phases = [...project.phases, { ...newPhase, order: project.phases.length }];
+        return { ...project, phases };
+      }
+      return project;
+    }));
+  }, []);
+
+  // Delete phase
+  const handleDeletePhase = useCallback((projectId: number, phaseId: number) => {
+    setProjects(prev => prev.map(project => {
+      if (project.id === projectId) {
+        const phases = project.phases
+          .filter(p => p.id !== phaseId)
+          .map((p, index) => ({ ...p, order: index }));
+        return { ...project, phases };
+      }
+      return project;
+    }));
+  }, []);
+
+  // Update phase status
+  const handleUpdatePhaseStatus = useCallback((projectId: number, phaseId: number, status: Phase['status']) => {
+    setProjects(prev => prev.map(project => {
+      if (project.id === projectId) {
+        const phases = project.phases.map(p =>
+          p.id === phaseId ? { ...p, status } : p
+        );
+        return { ...project, phases };
+      }
+      return project;
+    }));
+  }, []);
+
+  // Add requirement to phase
+  const handleAddRequirement = useCallback((projectId: number, phaseId: number, requirement: Partial<Requirement>) => {
+    if (!requirement.title?.trim()) return;
+
+    const newRequirement: Requirement = {
+      id: Date.now(),
+      title: requirement.title,
+      description: requirement.description || '',
+      completed: false,
+      priority: requirement.priority || 'medium',
+      assignedTo: requirement.assignedTo,
+      dueDate: requirement.dueDate
+    };
+
+    setProjects(prev => prev.map(project => {
+      if (project.id === projectId) {
+        const phases = project.phases.map(phase => {
+          if (phase.id === phaseId) {
+            return {
+              ...phase,
+              requirements: [...phase.requirements, newRequirement]
+            };
+          }
+          return phase;
+        });
+        return { ...project, phases };
+      }
+      return project;
+    }));
+  }, []);
+
+  // Toggle requirement completion
+  const handleToggleRequirement = useCallback((projectId: number, phaseId: number, requirementId: number) => {
+    setProjects(prev => prev.map(project => {
+      if (project.id === projectId) {
+        const phases = project.phases.map(phase => {
+          if (phase.id === phaseId) {
+            const requirements = phase.requirements.map(req =>
+              req.id === requirementId ? { ...req, completed: !req.completed } : req
+            );
+            
+            // Auto-update phase status based on requirements
+            const allCompleted = requirements.every(r => r.completed);
+            const anyInProgress = requirements.some(r => r.completed);
+            const newPhaseStatus = allCompleted ? 'completed' : (anyInProgress ? 'in-progress' : 'not-started');
+            
+            return {
+              ...phase,
+              requirements,
+              status: newPhaseStatus
+            };
+          }
+          return phase;
+        });
+        
+        // Calculate overall project progress
+        const totalRequirements = phases.reduce((sum, p) => sum + p.requirements.length, 0);
+        const completedRequirements = phases.reduce((sum, p) => 
+          sum + p.requirements.filter(r => r.completed).length, 0
+        );
+        const progress = totalRequirements > 0 ? Math.round((completedRequirements / totalRequirements) * 100) : 0;
+        
+        return { ...project, phases, progress };
+      }
+      return project;
+    }));
+  }, []);
+
+  // Delete requirement
+  const handleDeleteRequirement = useCallback((projectId: number, phaseId: number, requirementId: number) => {
+    setProjects(prev => prev.map(project => {
+      if (project.id === projectId) {
+        const phases = project.phases.map(phase => {
+          if (phase.id === phaseId) {
+            return {
+              ...phase,
+              requirements: phase.requirements.filter(r => r.id !== requirementId)
+            };
+          }
+          return phase;
+        });
+        return { ...project, phases };
+      }
+      return project;
+    }));
+  }, []);
+
+  // Toggle phase expansion
+  const togglePhaseExpansion = useCallback((phaseId: number) => {
+    setExpandedPhases(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(phaseId)) {
+        newSet.delete(phaseId);
+      } else {
+        newSet.add(phaseId);
+      }
+      return newSet;
+    });
   }, []);
 
   // Filtered and sorted projects
@@ -759,6 +935,168 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
                   </div>
                 )}
 
+                {/* === PHASES SECTION === */}
+                {project.phases && project.phases.length > 0 && (
+                  <div className="mb-4 space-y-2">
+                    <div className="text-xs text-white/60 mb-2 flex items-center gap-2">
+                      <Layers className="w-3 h-3" />
+                      <span>Phases ({project.phases.filter(p => p.status === 'completed').length}/{project.phases.length} completed)</span>
+                    </div>
+                    {project.phases.map((phase) => {
+                      const isExpanded = expandedPhases.has(phase.id);
+                      const completedReqs = phase.requirements.filter(r => r.completed).length;
+                      const totalReqs = phase.requirements.length;
+                      const phaseProgress = totalReqs > 0 ? (completedReqs / totalReqs) * 100 : 0;
+                      
+                      return (
+                        <div key={phase.id} className="bg-dark/30 rounded-lg border border-white/5 overflow-hidden">
+                          {/* Phase Header */}
+                          <div 
+                            className="p-3 cursor-pointer hover:bg-white/5 transition-colors"
+                            onClick={() => togglePhaseExpansion(phase.id)}
+                          >
+                            <div className="flex items-center gap-2 mb-2">
+                              {isExpanded ? (
+                                <ChevronDown className="w-4 h-4 text-white/40 flex-shrink-0" />
+                              ) : (
+                                <ChevronRight className="w-4 h-4 text-white/40 flex-shrink-0" />
+                              )}
+                              <span className="font-medium text-sm text-white flex-1">{phase.name}</span>
+                              <Badge className={cn(
+                                'text-xs px-2 py-0',
+                                phase.status === 'completed' && 'bg-green-500/20 text-green-400 border-green-500/30',
+                                phase.status === 'in-progress' && 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+                                phase.status === 'not-started' && 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+                              )}>
+                                {phase.status === 'completed' && <CheckCircle2 className="w-3 h-3 mr-1" />}
+                                {phase.status === 'in-progress' && <Activity className="w-3 h-3 mr-1" />}
+                                {phase.status === 'not-started' && <Circle className="w-3 h-3 mr-1" />}
+                                {phase.status.replace('-', ' ')}
+                              </Badge>
+                            </div>
+                            {phase.description && (
+                              <p className="text-xs text-white/50 ml-6">{phase.description}</p>
+                            )}
+                            <div className="flex items-center gap-2 ml-6 mt-2">
+                              <div className="flex-1 bg-dark/50 rounded-full h-1.5 overflow-hidden">
+                                <div
+                                  className="h-full bg-gradient-to-r from-green-500 to-blue-500 transition-all duration-300"
+                                  style={{ width: `${phaseProgress}%` }}
+                                />
+                              </div>
+                              <span className="text-xs text-white/40">{completedReqs}/{totalReqs}</span>
+                            </div>
+                          </div>
+
+                          {/* Phase Requirements (Expanded) */}
+                          {isExpanded && (
+                            <div className="px-3 pb-3 space-y-2">
+                              {phase.requirements.map((req) => (
+                                <div 
+                                  key={req.id}
+                                  className="flex items-start gap-2 p-2 bg-dark/20 rounded border border-white/5 hover:border-white/10 transition-colors"
+                                >
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleToggleRequirement(project.id, phase.id, req.id);
+                                    }}
+                                    className={cn(
+                                      'mt-0.5 w-4 h-4 rounded border flex items-center justify-center transition-all flex-shrink-0',
+                                      req.completed
+                                        ? 'bg-green-500/20 border-green-500/50'
+                                        : 'bg-dark/50 border-white/20 hover:border-white/40'
+                                    )}
+                                  >
+                                    {req.completed && <CheckCircle className="w-3 h-3 text-green-400" />}
+                                  </button>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className={cn(
+                                        'text-xs text-white flex-1',
+                                        req.completed && 'line-through text-white/40'
+                                      )}>
+                                        {req.title}
+                                      </span>
+                                      {req.priority && req.priority !== 'medium' && (
+                                        <Badge className={cn(
+                                          'text-[10px] px-1.5 py-0',
+                                          req.priority === 'critical' && 'bg-red-500/20 text-red-400 border-red-500/30',
+                                          req.priority === 'high' && 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+                                          req.priority === 'low' && 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+                                        )}>
+                                          {req.priority}
+                                        </Badge>
+                                      )}
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleDeleteRequirement(project.id, phase.id, req.id);
+                                        }}
+                                        className="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all"
+                                      >
+                                        <X className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                    {req.description && (
+                                      <p className="text-[10px] text-white/40 mb-1">{req.description}</p>
+                                    )}
+                                    {(req.assignedTo || req.dueDate) && (
+                                      <div className="flex items-center gap-2 text-[10px] text-white/30">
+                                        {req.assignedTo && <span>👤 {req.assignedTo}</span>}
+                                        {req.dueDate && <span>📅 {req.dueDate}</span>}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                              
+                              {/* Add New Requirement */}
+                              <AddRequirementForm 
+                                projectId={project.id}
+                                phaseId={phase.id}
+                                onAdd={handleAddRequirement}
+                              />
+                              
+                              {/* Phase Actions */}
+                              <div className="flex gap-2 pt-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (phase.status !== 'in-progress') {
+                                      handleUpdatePhaseStatus(project.id, phase.id, 'in-progress');
+                                    }
+                                  }}
+                                  className="text-[10px] px-2 py-1 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded border border-blue-500/20 transition-colors"
+                                >
+                                  Start Phase
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeletePhase(project.id, phase.id);
+                                  }}
+                                  className="text-[10px] px-2 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded border border-red-500/20 transition-colors"
+                                >
+                                  Delete Phase
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Add New Phase Button */}
+                <div className="mb-4">
+                  <AddPhaseForm 
+                    projectId={project.id}
+                    onAdd={handleAddPhase}
+                  />
+                </div>
+
                 {/* Status Actions */}
                 <div className="flex flex-wrap gap-2 pt-4 border-t border-white/10">
                   {project.status !== 'active' && (
@@ -811,3 +1149,189 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
     </div>
   );
 };
+
+// Helper Component: Add Phase Form
+const AddPhaseForm: React.FC<{
+  projectId: number;
+  onAdd: (projectId: number, name: string, description: string) => void;
+}> = ({ projectId, onAdd }) => {
+  const [isAdding, setIsAdding] = useState(false);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+
+  const handleSubmit = () => {
+    if (name.trim()) {
+      onAdd(projectId, name.trim(), description.trim());
+      setName('');
+      setDescription('');
+      setIsAdding(false);
+    }
+  };
+
+  if (!isAdding) {
+    return (
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => setIsAdding(true)}
+        className="w-full text-xs h-8 border-dashed border-white/20 text-white/60 hover:text-white hover:border-white/40"
+      >
+        <Plus className="w-3 h-3 mr-1" />
+        Add Phase
+      </Button>
+    );
+  }
+
+  return (
+    <div className="bg-dark/30 rounded-lg border border-white/10 p-3 space-y-2">
+      <Input
+        placeholder="Phase name (e.g., Planning, Development, Testing)"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        className="bg-dark/50 border-white/10 text-white text-xs h-8"
+        autoFocus
+      />
+      <Input
+        placeholder="Phase description (optional)"
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        className="bg-dark/50 border-white/10 text-white text-xs h-8"
+      />
+      <div className="flex gap-2">
+        <Button
+          size="sm"
+          onClick={handleSubmit}
+          disabled={!name.trim()}
+          className="flex-1 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white text-xs h-7"
+        >
+          <Save className="w-3 h-3 mr-1" />
+          Add
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            setIsAdding(false);
+            setName('');
+            setDescription('');
+          }}
+          className="border-white/10 text-white/60 text-xs h-7"
+        >
+          <X className="w-3 h-3" />
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+// Helper Component: Add Requirement Form
+const AddRequirementForm: React.FC<{
+  projectId: number;
+  phaseId: number;
+  onAdd: (projectId: number, phaseId: number, requirement: Partial<Requirement>) => void;
+}> = ({ projectId, phaseId, onAdd }) => {
+  const [isAdding, setIsAdding] = useState(false);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'critical'>('medium');
+  const [assignedTo, setAssignedTo] = useState('');
+  const [dueDate, setDueDate] = useState('');
+
+  const handleSubmit = () => {
+    if (title.trim()) {
+      onAdd(projectId, phaseId, {
+        title: title.trim(),
+        description: description.trim(),
+        priority,
+        assignedTo: assignedTo.trim() || undefined,
+        dueDate: dueDate || undefined
+      });
+      setTitle('');
+      setDescription('');
+      setPriority('medium');
+      setAssignedTo('');
+      setDueDate('');
+      setIsAdding(false);
+    }
+  };
+
+  if (!isAdding) {
+    return (
+      <button
+        onClick={() => setIsAdding(true)}
+        className="w-full text-left p-2 bg-dark/10 hover:bg-dark/20 rounded border border-dashed border-white/10 hover:border-white/20 transition-colors"
+      >
+        <span className="text-xs text-white/40 flex items-center gap-1">
+          <Plus className="w-3 h-3" />
+          Add requirement
+        </span>
+      </button>
+    );
+  }
+
+  return (
+    <div className="bg-dark/40 rounded border border-white/10 p-2 space-y-2">
+      <Input
+        placeholder="Requirement title"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        className="bg-dark/50 border-white/10 text-white text-xs h-7"
+        autoFocus
+      />
+      <Input
+        placeholder="Description (optional)"
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        className="bg-dark/50 border-white/10 text-white text-xs h-7"
+      />
+      <div className="grid grid-cols-2 gap-2">
+        <select
+          value={priority}
+          onChange={(e) => setPriority(e.target.value as any)}
+          className="bg-dark/50 text-white border border-white/10 rounded px-2 py-1 text-xs"
+        >
+          <option value="low">Low Priority</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+          <option value="critical">Critical</option>
+        </select>
+        <Input
+          type="date"
+          value={dueDate}
+          onChange={(e) => setDueDate(e.target.value)}
+          className="bg-dark/50 border-white/10 text-white text-xs h-7"
+        />
+      </div>
+      <Input
+        placeholder="Assigned to (optional)"
+        value={assignedTo}
+        onChange={(e) => setAssignedTo(e.target.value)}
+        className="bg-dark/50 border-white/10 text-white text-xs h-7"
+      />
+      <div className="flex gap-2">
+        <Button
+          size="sm"
+          onClick={handleSubmit}
+          disabled={!title.trim()}
+          className="flex-1 bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 text-xs h-6"
+        >
+          <Save className="w-3 h-3 mr-1" />
+          Add
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            setIsAdding(false);
+            setTitle('');
+            setDescription('');
+          }}
+          className="border-white/10 text-white/60 text-xs h-6"
+        >
+          <X className="w-3 h-3" />
+        </Button>
+      </div>
+    </div>
+  );
+};
+
