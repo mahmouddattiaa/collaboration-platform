@@ -1,7 +1,7 @@
 // API Base URLs - Updated for Vercel deployment
 // Using stable Vercel production URL - this URL never changes!
 // Format: https://[project-name].vercel.app (not the deployment-specific URLs)
-const BACKEND_URL = "https://collaboration.vercel.app";
+const BACKEND_URL = "https://collaboration-flame.vercel.app";
 
 export const API_BASE_URL = BACKEND_URL;
 export const COLLAB_BASE_URL = BACKEND_URL;

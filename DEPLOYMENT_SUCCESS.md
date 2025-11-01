@@ -10,15 +10,15 @@ Your collaboration platform is now live on Vercel!
 
 ### Frontend (User Interface)
 
-**Production URL (Stable - Never Changes)**: https://collaboration-frontend.vercel.app
+**Production URL (Stable - Never Changes)**: https://collaboration-frontend-seven.vercel.app
 
 Visit this URL to use your app!
 
 ### Backend (API Server)
 
-**Production URL (Stable - Never Changes)**: https://collaboration.vercel.app
+**Production URL (Stable - Never Changes)**: https://collaboration-flame.vercel.app
 
-**Health Check**: https://collaboration.vercel.app/health
+**Health Check**: https://collaboration-flame.vercel.app/health
 
 ---
 

@@ -43,15 +43,15 @@ Vercel provides **TWO types of URLs** for every project:
 ### Backend API
 
 ```
-https://collaboration.vercel.app
+https://collaboration-flame.vercel.app
 ```
 
-**Health Check**: https://collaboration.vercel.app/health
+**Health Check**: https://collaboration-flame.vercel.app/health
 
 ### Frontend App
 
 ```
-https://collaboration-frontend.vercel.app
+https://collaboration-frontend-seven.vercel.app
 ```
 
 ---
@@ -64,7 +64,7 @@ File: `collaboration-frontend/src/config/api.ts`
 
 ```typescript
 // This URL NEVER changes!
-const BACKEND_URL = "https://collaboration.vercel.app";
+const BACKEND_URL = "https://collaboration-flame.vercel.app";
 
 export const API_BASE_URL = BACKEND_URL;
 export const COLLAB_BASE_URL = BACKEND_URL;
@@ -79,7 +79,7 @@ File: `collaboration-server/src/server.js`
 const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:5173",
-  "https://collaboration-frontend.vercel.app", // Stable - never changes!
+  "https://collaboration-frontend-seven.vercel.app", // Stable - never changes!
 ];
 ```
 
@@ -97,7 +97,7 @@ git commit -m "Update frontend feature"
 vercel --prod
 ```
 
-✅ **URL stays the same**: `https://collaboration-frontend.vercel.app`
+✅ **URL stays the same**: `https://collaboration-frontend-seven.vercel.app`
 
 ### Update Backend
 
@@ -237,7 +237,7 @@ Your app now uses **stable production URLs** that will never change, no matter h
 
 **Production URLs:**
 
-- **Frontend**: https://collaboration-frontend.vercel.app
-- **Backend**: https://collaboration.vercel.app
+- **Frontend**: https://collaboration-frontend-seven.vercel.app
+- **Backend**: https://collaboration-flame.vercel.app
 
 Deploy freely without worrying about URL changes! 🚀
