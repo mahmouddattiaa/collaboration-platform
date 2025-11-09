@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { MessageSquare, FileText, CheckSquare, Folder, BookOpen, Users, Settings, ChevronLeft, ChevronRight, Video, VideoOff, Timer, Search, Sparkles, Bot, BarChart3, Shield, Brain, Database, Layout, Plus, Calendar, Target, BarChart2, ListTodo, Trash2, Send, Tag, Filter, Star, Clock, Lightbulb, Zap, TrendingUp, Archive, Edit2, Copy, CheckCircle } from 'lucide-react';
+import { MessageSquare, FileText, CheckSquare, Folder, BookOpen, Users, Settings, ChevronLeft, ChevronRight, Video, VideoOff, Timer, Search, Sparkles, Bot, BarChart3, Shield, Brain, Database, Layout, Plus, Calendar, Target, BarChart2, ListTodo, Trash2, Send, Tag, Filter, Star, Clock, Lightbulb, Zap, TrendingUp, Archive, Edit2, Copy, CheckCircle, Activity } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 
 import { SidebarItem } from '@/components/common/SidebarItem';
