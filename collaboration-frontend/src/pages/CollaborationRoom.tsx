@@ -50,7 +50,10 @@ export function CollaborationRoomContent() {
   const { roomId } = useParams();
   const [isConferencePanelOpen, setIsConferencePanelOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    // Default to collapsed on mobile screens
+    return window.innerWidth < 768;
+  });
 
   // Brain Dump State Management
   const [brainDumpIdea, setBrainDumpIdea] = useState('');
@@ -203,14 +206,37 @@ export function CollaborationRoomContent() {
       
       {/* Main Content */}
       <div className="flex-1 flex relative z-10 w-full">
+        {/* Sidebar Toggle Button (appears when collapsed on mobile) */}
+        {isSidebarCollapsed && (
+          <Button
+            variant="ghost"
+            className="fixed left-2 top-4 z-30 bg-dark/80 backdrop-blur-xl border border-white/10 hover:bg-white/10 md:hidden"
+            onClick={() => setIsSidebarCollapsed(false)}
+          >
+            <ChevronRight className="w-5 h-5" />
+          </Button>
+        )}
+
+        {/* Mobile Backdrop Overlay */}
+        {!isSidebarCollapsed && (
+          <div 
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-10 md:hidden"
+            onClick={() => setIsSidebarCollapsed(true)}
+          />
+        )}
+
         {/* Sidebar */}
         <div className={cn(
           "bg-dark/50 backdrop-blur-xl border-r border-white/10 flex flex-col transition-all duration-300 flex-shrink-0",
           isSidebarCollapsed ? "w-16" : "w-64",
           "max-md:absolute max-md:left-0 max-md:top-0 max-md:h-full max-md:z-20",
-          isSidebarCollapsed && "max-md:-translate-x-full"
+          isSidebarCollapsed && "max-md:-translate-x-full",
+          !isSidebarCollapsed && "max-md:shadow-2xl"
         )}>
-          <div className="flex-1 p-2 overflow-y-auto">{/* Navigation Section */}
+          <div className={cn(
+            "flex-1 p-2 overflow-y-auto",
+            isSidebarCollapsed && "hidden md:block"
+          )}>{/* Navigation Section */}
             <SidebarSection title="Navigation" defaultExpanded={true}>
               <SidebarItem
                 icon={<BarChart2 className="w-5 h-5" />}
@@ -296,17 +322,25 @@ export function CollaborationRoomContent() {
             </SidebarSection>
           </div>
 
-          <Button
-            variant="ghost"
-            className="p-2 w-full flex justify-center hover:bg-white/5 flex-shrink-0"
-            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-          >
-            {isSidebarCollapsed ? (
-              <ChevronRight className="w-4 h-4" />
-            ) : (
+          {!isSidebarCollapsed && (
+            <Button
+              variant="ghost"
+              className="p-2 w-full flex justify-center hover:bg-white/5 flex-shrink-0 border-t border-white/5"
+              onClick={() => setIsSidebarCollapsed(true)}
+            >
               <ChevronLeft className="w-4 h-4" />
-            )}
-          </Button>
+            </Button>
+          )}
+          
+          {isSidebarCollapsed && (
+            <Button
+              variant="ghost"
+              className="hidden md:flex p-2 w-full justify-center hover:bg-white/5 flex-shrink-0 border-t border-white/5"
+              onClick={() => setIsSidebarCollapsed(false)}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          )}
         </div>
 
         {/* Content Area */}
