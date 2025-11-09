@@ -421,11 +421,141 @@ export function CollaborationRoomContent() {
               </div>
             )}
             {activeTab === 'dashboard' && (
-              <div className="text-center text-white/60">
-                <BarChart2 className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 opacity-50" />
-                <h3 className="text-lg sm:text-xl font-semibold mb-2 text-white">📊 Dashboard</h3>
-                <p className="text-theme-primary font-mono mb-4 text-sm sm:text-base">🎉 Successfully joined room: {roomId}</p>
-                <p className="text-sm sm:text-base">Company dashboard and analytics</p>
+              <div className="max-w-7xl mx-auto w-full">
+                {/* Welcome Section */}
+                <div className="mb-8">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3 flex items-center gap-3">
+                        <span className="bg-gradient-to-r from-green-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
+                          Room Dashboard
+                        </span>
+                        <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-400 animate-pulse" />
+                      </h2>
+                      <div className="flex items-center gap-2 text-green-400 text-sm sm:text-base">
+                        <CheckCircle className="w-5 h-5" />
+                        <span className="font-mono">Successfully joined: {roomId}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Stats Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    <div className="bg-gradient-to-br from-green-500/20 to-green-600/10 backdrop-blur-xl border border-green-500/30 rounded-2xl p-6 hover:scale-105 transition-all duration-300 cursor-pointer group">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                          <Users className="w-6 h-6 text-green-400" />
+                        </div>
+                        <TrendingUp className="w-5 h-5 text-green-400" />
+                      </div>
+                      <p className="text-white/60 text-sm mb-1">Active Members</p>
+                      <p className="text-3xl font-bold text-white">{room?.participants?.length || 0}</p>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/10 backdrop-blur-xl border border-blue-500/30 rounded-2xl p-6 hover:scale-105 transition-all duration-300 cursor-pointer group">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                          <Target className="w-6 h-6 text-blue-400" />
+                        </div>
+                        <Zap className="w-5 h-5 text-blue-400" />
+                      </div>
+                      <p className="text-white/60 text-sm mb-1">Active Projects</p>
+                      <p className="text-3xl font-bold text-white">0</p>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/10 backdrop-blur-xl border border-purple-500/30 rounded-2xl p-6 hover:scale-105 transition-all duration-300 cursor-pointer group">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                          <MessageSquare className="w-6 h-6 text-purple-400" />
+                        </div>
+                        <Activity className="w-5 h-5 text-purple-400" />
+                      </div>
+                      <p className="text-white/60 text-sm mb-1">Messages</p>
+                      <p className="text-3xl font-bold text-white">0</p>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-amber-500/20 to-amber-600/10 backdrop-blur-xl border border-amber-500/30 rounded-2xl p-6 hover:scale-105 transition-all duration-300 cursor-pointer group">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="w-12 h-12 bg-amber-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                          <CheckSquare className="w-6 h-6 text-amber-400" />
+                        </div>
+                        <Star className="w-5 h-5 text-amber-400" />
+                      </div>
+                      <p className="text-white/60 text-sm mb-1">Tasks Completed</p>
+                      <p className="text-3xl font-bold text-white">0</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Actions */}
+                <div className="mb-8">
+                  <h3 className="text-xl font-bold text-white mb-4">Quick Actions</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                    <button
+                      onClick={() => setActiveTab('project-tracker')}
+                      className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-green-500/50 rounded-xl p-4 transition-all duration-300 hover:scale-105 group"
+                    >
+                      <Target className="w-8 h-8 mx-auto mb-2 text-green-400 group-hover:scale-110 transition-transform" />
+                      <p className="text-sm text-white/80 text-center">Projects</p>
+                    </button>
+                    
+                    <button
+                      onClick={() => setActiveTab('tasks')}
+                      className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-blue-500/50 rounded-xl p-4 transition-all duration-300 hover:scale-105 group"
+                    >
+                      <CheckSquare className="w-8 h-8 mx-auto mb-2 text-blue-400 group-hover:scale-110 transition-transform" />
+                      <p className="text-sm text-white/80 text-center">Tasks</p>
+                    </button>
+                    
+                    <button
+                      onClick={() => setActiveTab('chat')}
+                      className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-purple-500/50 rounded-xl p-4 transition-all duration-300 hover:scale-105 group"
+                    >
+                      <MessageSquare className="w-8 h-8 mx-auto mb-2 text-purple-400 group-hover:scale-110 transition-transform" />
+                      <p className="text-sm text-white/80 text-center">Chat</p>
+                    </button>
+                    
+                    <button
+                      onClick={() => setActiveTab('whiteboard')}
+                      className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-pink-500/50 rounded-xl p-4 transition-all duration-300 hover:scale-105 group"
+                    >
+                      <Layout className="w-8 h-8 mx-auto mb-2 text-pink-400 group-hover:scale-110 transition-transform" />
+                      <p className="text-sm text-white/80 text-center">Whiteboard</p>
+                    </button>
+                    
+                    <button
+                      onClick={() => setActiveTab('brain-dump')}
+                      className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-500/50 rounded-xl p-4 transition-all duration-300 hover:scale-105 group"
+                    >
+                      <Brain className="w-8 h-8 mx-auto mb-2 text-amber-400 group-hover:scale-110 transition-transform" />
+                      <p className="text-sm text-white/80 text-center">Brain Dump</p>
+                    </button>
+                    
+                    <button
+                      onClick={() => setActiveTab('ai')}
+                      className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-cyan-500/50 rounded-xl p-4 transition-all duration-300 hover:scale-105 group"
+                    >
+                      <Bot className="w-8 h-8 mx-auto mb-2 text-cyan-400 group-hover:scale-110 transition-transform" />
+                      <p className="text-sm text-white/80 text-center">AI Assistant</p>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Recent Activity */}
+                <div className="bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 rounded-2xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                      <Activity className="w-5 h-5 text-green-400" />
+                      Recent Activity
+                    </h3>
+                    <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Live</Badge>
+                  </div>
+                  <div className="text-center py-12 text-white/40">
+                    <Clock className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No recent activity yet</p>
+                    <p className="text-sm mt-2">Start collaborating to see activity here</p>
+                  </div>
+                </div>
               </div>
             )}
             {activeTab === 'project-tracker' && (
