@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { 
-  Plus, Trash2, Edit2, Save, X, Target, Calendar, Users, TrendingUp, 
+import {
+  Plus, Trash2, Edit2, Save, X, Target, Calendar, Users, TrendingUp,
   Clock, CheckCircle, AlertCircle, Play, Pause, Archive, Filter, Search,
   Star, Flag, Zap, Award, Activity, BarChart3, Folder, Tag, List, ChevronDown,
   ChevronRight, Circle, CheckCircle2, Layers, DollarSign, AlertTriangle,
@@ -125,7 +125,7 @@ interface Project {
   tags: string[];
   createdAt: string;
   starred: boolean;
-  
+
   // Enhanced fields
   budget?: number;
   actualCost?: number;
@@ -226,28 +226,28 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
       setProjects(prev => prev.map(project =>
         project.id === editingProjectId
           ? {
-              ...project,
-              name: newProjectName,
-              description: newProjectDescription,
-              priority: newProjectPriority,
-              startDate: newProjectStartDate,
-              dueDate: newProjectDueDate,
-              tags: tagsArray,
-              budget: newProjectBudget ? parseFloat(newProjectBudget) : project.budget,
-              client: newProjectClient || project.client,
-              projectManager: newProjectManager || project.projectManager,
-              category: newProjectCategory || project.category,
-              activityLog: [
-                ...(project.activityLog || []),
-                {
-                  id: Date.now(),
-                  action: 'Project updated',
-                  user: currentUser,
-                  timestamp: new Date().toLocaleString(),
-                  details: 'Project details were modified'
-                }
-              ]
-            }
+            ...project,
+            name: newProjectName,
+            description: newProjectDescription,
+            priority: newProjectPriority,
+            startDate: newProjectStartDate,
+            dueDate: newProjectDueDate,
+            tags: tagsArray,
+            budget: newProjectBudget ? parseFloat(newProjectBudget) : project.budget,
+            client: newProjectClient || project.client,
+            projectManager: newProjectManager || project.projectManager,
+            category: newProjectCategory || project.category,
+            activityLog: [
+              ...(project.activityLog || []),
+              {
+                id: Date.now(),
+                action: 'Project updated',
+                user: currentUser,
+                timestamp: new Date().toLocaleString(),
+                details: 'Project details were modified'
+              }
+            ]
+          }
           : project
       ));
       setEditingProjectId(null);
@@ -345,7 +345,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
   // Add milestone
   const handleAddMilestone = useCallback((projectId: number, milestoneTitle: string, dueDate: string) => {
     if (!milestoneTitle.trim()) return;
-    
+
     const newMilestone: Milestone = {
       id: Date.now(),
       title: milestoneTitle,
@@ -365,11 +365,11 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
     setProjects(prev => prev.map(project =>
       project.id === projectId
         ? {
-            ...project,
-            milestones: project.milestones.map(m =>
-              m.id === milestoneId ? { ...m, completed: !m.completed } : m
-            )
-          }
+          ...project,
+          milestones: project.milestones.map(m =>
+            m.id === milestoneId ? { ...m, completed: !m.completed } : m
+          )
+        }
         : project
     ));
   }, []);
@@ -395,9 +395,9 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
     setProjects(prev => prev.map(project =>
       project.id === projectId
         ? {
-            ...project,
-            teamMembers: [...project.teamMembers, { ...member, id: Date.now() }]
-          }
+          ...project,
+          teamMembers: [...project.teamMembers, { ...member, id: Date.now() }]
+        }
         : project
     ));
   }, []);
@@ -407,9 +407,9 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
     setProjects(prev => prev.map(project =>
       project.id === projectId
         ? {
-            ...project,
-            risks: [...(project.risks || []), { ...risk, id: Date.now() }]
-          }
+          ...project,
+          risks: [...(project.risks || []), { ...risk, id: Date.now() }]
+        }
         : project
     ));
   }, []);
@@ -419,9 +419,9 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
     setProjects(prev => prev.map(project =>
       project.id === projectId
         ? {
-            ...project,
-            issues: [...(project.issues || []), { ...issue, id: Date.now(), createdAt: new Date().toLocaleString() }]
-          }
+          ...project,
+          issues: [...(project.issues || []), { ...issue, id: Date.now(), createdAt: new Date().toLocaleString() }]
+        }
         : project
     ));
   }, []);
@@ -431,14 +431,14 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
     setProjects(prev => prev.map(project =>
       project.id === projectId
         ? {
-            ...project,
-            comments: [...(project.comments || []), {
-              id: Date.now(),
-              author,
-              content,
-              timestamp: new Date().toLocaleString()
-            }]
-          }
+          ...project,
+          comments: [...(project.comments || []), {
+            id: Date.now(),
+            author,
+            content,
+            timestamp: new Date().toLocaleString()
+          }]
+        }
         : project
     ));
   }, []);
@@ -448,13 +448,13 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
     setProjects(prev => prev.map(project =>
       project.id === projectId
         ? {
-            ...project,
-            attachments: [...(project.attachments || []), {
-              ...attachment,
-              id: Date.now(),
-              uploadedAt: new Date().toLocaleString()
-            }]
-          }
+          ...project,
+          attachments: [...(project.attachments || []), {
+            ...attachment,
+            id: Date.now(),
+            uploadedAt: new Date().toLocaleString()
+          }]
+        }
         : project
     ));
   }, []);
@@ -551,12 +551,12 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
             const requirements = phase.requirements.map(req =>
               req.id === requirementId ? { ...req, completed: !req.completed } : req
             );
-            
+
             // Auto-update phase status based on requirements
             const allCompleted = requirements.every(r => r.completed);
             const anyInProgress = requirements.some(r => r.completed);
             const newPhaseStatus = allCompleted ? 'completed' : (anyInProgress ? 'in-progress' : 'not-started');
-            
+
             return {
               ...phase,
               requirements,
@@ -565,14 +565,14 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
           }
           return phase;
         });
-        
+
         // Calculate overall project progress
         const totalRequirements = phases.reduce((sum, p) => sum + p.requirements.length, 0);
-        const completedRequirements = phases.reduce((sum, p) => 
+        const completedRequirements = phases.reduce((sum, p) =>
           sum + p.requirements.filter(r => r.completed).length, 0
         );
         const progress = totalRequirements > 0 ? Math.round((completedRequirements / totalRequirements) * 100) : 0;
-        
+
         return { ...project, phases, progress };
       }
       return project;
@@ -727,7 +727,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
               </p>
             </div>
           </div>
-          
+
           {/* View Mode Toggle */}
           <div className="hidden md:flex gap-1 bg-dark-secondary/50 rounded-lg p-1 border border-white/10">
             <Button
@@ -1134,7 +1134,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
                     {project.description && (
                       <p className="text-sm text-white/60 mb-3 line-clamp-2">{project.description}</p>
                     )}
-                    
+
                     {/* Enhanced metadata */}
                     <div className="flex flex-wrap gap-2 text-xs text-white/50">
                       {project.client && (
@@ -1300,11 +1300,11 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
                       const completedReqs = phase.requirements.filter(r => r.completed).length;
                       const totalReqs = phase.requirements.length;
                       const phaseProgress = totalReqs > 0 ? (completedReqs / totalReqs) * 100 : 0;
-                      
+
                       return (
                         <div key={phase.id} className="bg-dark/30 rounded-lg border border-white/5 overflow-hidden">
                           {/* Phase Header */}
-                          <div 
+                          <div
                             className="p-3 cursor-pointer hover:bg-white/5 transition-colors"
                             onClick={() => togglePhaseExpansion(phase.id)}
                           >
@@ -1345,7 +1345,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
                           {isExpanded && (
                             <div className="px-3 pb-3 space-y-2">
                               {phase.requirements.map((req) => (
-                                <div 
+                                <div
                                   key={req.id}
                                   className="flex items-start gap-2 p-2 bg-dark/20 rounded border border-white/5 hover:border-white/10 transition-colors"
                                 >
@@ -1403,14 +1403,14 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
                                   </div>
                                 </div>
                               ))}
-                              
+
                               {/* Add New Requirement */}
-                              <AddRequirementForm 
+                              <AddRequirementForm
                                 projectId={project.id}
                                 phaseId={phase.id}
                                 onAdd={handleAddRequirement}
                               />
-                              
+
                               {/* Phase Actions */}
                               <div className="flex gap-2 pt-2">
                                 <button
@@ -1444,7 +1444,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
 
                 {/* Add New Phase Button */}
                 <div className="mb-4">
-                  <AddPhaseForm 
+                  <AddPhaseForm
                     projectId={project.id}
                     onAdd={handleAddPhase}
                   />
@@ -1576,23 +1576,23 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
     let score = 100;
     const openIssues = localProject.issues?.filter(i => i.status !== 'closed').length || 0;
     const criticalRisks = localProject.risks?.filter(r => r.severity === 'critical' && r.status !== 'resolved').length || 0;
-    
+
     if (openIssues > 5) score -= 20;
     else if (openIssues > 2) score -= 10;
-    
+
     if (criticalRisks > 0) score -= 30;
-    
+
     const daysUntilDue = localProject.dueDate
       ? Math.ceil((new Date(localProject.dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
       : 999;
-    
+
     if (daysUntilDue < 0) score -= 40;
     else if (daysUntilDue < 7 && localProject.progress < 80) score -= 20;
-    
+
     if (localProject.budget && localProject.actualCost && localProject.actualCost > localProject.budget * 0.9) {
       score -= 15;
     }
-    
+
     return Math.max(0, Math.min(100, score));
   }, [localProject]);
 
@@ -1617,7 +1617,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
             <p className="text-sm text-white/60">{localProject.description}</p>
           </div>
         </div>
-        
+
         {/* Health Score */}
         <div className={cn('px-4 py-2 rounded-lg border', healthBg)}>
           <div className="text-xs text-white/60">Project Health</div>
@@ -1693,7 +1693,7 @@ const OverviewTab: React.FC<{
   onSave: () => void;
 }> = ({ project, onUpdate, onSave }) => {
   const [editing, setEditing] = useState(false);
-  
+
   return (
     <div className="space-y-6">
       {/* Key Metrics */}
@@ -1705,7 +1705,7 @@ const OverviewTab: React.FC<{
           </div>
           <p className="text-xs text-white/60">Progress</p>
         </div>
-        
+
         <div className="bg-dark/30 rounded-lg p-4 border border-white/5">
           <div className="flex items-center justify-between mb-2">
             <Users className="w-5 h-5 text-blue-400" />
@@ -1713,7 +1713,7 @@ const OverviewTab: React.FC<{
           </div>
           <p className="text-xs text-white/60">Team Members</p>
         </div>
-        
+
         <div className="bg-dark/30 rounded-lg p-4 border border-white/5">
           <div className="flex items-center justify-between mb-2">
             <CheckCircle2 className="w-5 h-5 text-emerald-400" />
@@ -1723,13 +1723,13 @@ const OverviewTab: React.FC<{
           </div>
           <p className="text-xs text-white/60">Completed Tasks</p>
         </div>
-        
+
         <div className="bg-dark/30 rounded-lg p-4 border border-white/5">
           <div className="flex items-center justify-between mb-2">
             <AlertTriangle className="w-5 h-5 text-orange-400" />
             <span className="text-2xl font-bold text-white">
-              {(project.risks?.filter(r => r.status !== 'resolved').length || 0) + 
-               (project.issues?.filter(i => i.status !== 'closed').length || 0)}
+              {(project.risks?.filter(r => r.status !== 'resolved').length || 0) +
+                (project.issues?.filter(i => i.status !== 'closed').length || 0)}
             </span>
           </div>
           <p className="text-xs text-white/60">Open Issues</p>
@@ -1750,7 +1750,7 @@ const OverviewTab: React.FC<{
             {editing ? 'Save' : 'Edit'}
           </Button>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="text-xs text-white/60 mb-1 block">Client</label>
@@ -1764,7 +1764,7 @@ const OverviewTab: React.FC<{
               <p className="text-sm text-white">{project.client || 'Not specified'}</p>
             )}
           </div>
-          
+
           <div>
             <label className="text-xs text-white/60 mb-1 block">Project Manager</label>
             {editing ? (
@@ -1777,7 +1777,7 @@ const OverviewTab: React.FC<{
               <p className="text-sm text-white">{project.projectManager || 'Not assigned'}</p>
             )}
           </div>
-          
+
           <div>
             <label className="text-xs text-white/60 mb-1 block">Category</label>
             {editing ? (
@@ -1790,17 +1790,17 @@ const OverviewTab: React.FC<{
               <p className="text-sm text-white">{project.category || 'Uncategorized'}</p>
             )}
           </div>
-          
+
           <div>
             <label className="text-xs text-white/60 mb-1 block">Status</label>
             <p className="text-sm text-white capitalize">{project.status.replace('-', ' ')}</p>
           </div>
-          
+
           <div>
             <label className="text-xs text-white/60 mb-1 block">Start Date</label>
             <p className="text-sm text-white">{project.startDate || 'Not set'}</p>
           </div>
-          
+
           <div>
             <label className="text-xs text-white/60 mb-1 block">Due Date</label>
             <p className="text-sm text-white">{project.dueDate || 'Not set'}</p>
@@ -1885,7 +1885,7 @@ const TasksTab: React.FC<{
 
             return (
               <div key={phase.id} className="bg-dark/30 rounded-lg border border-white/5 overflow-hidden">
-                <div 
+                <div
                   className="p-4 cursor-pointer hover:bg-white/5 transition-colors"
                   onClick={() => togglePhaseExpansion(phase.id)}
                 >
@@ -1905,11 +1905,11 @@ const TasksTab: React.FC<{
                       {phase.status.replace('-', ' ')}
                     </Badge>
                   </div>
-                  
+
                   {phase.description && (
                     <p className="text-sm text-white/60 ml-8 mb-3">{phase.description}</p>
                   )}
-                  
+
                   <div className="flex items-center gap-3 ml-8">
                     <div className="flex-1 bg-dark/50 rounded-full h-2 overflow-hidden">
                       <div
@@ -1932,11 +1932,11 @@ const TasksTab: React.FC<{
                             const updatedPhases = project.phases.map(p =>
                               p.id === phase.id
                                 ? {
-                                    ...p,
-                                    requirements: p.requirements.map(r =>
-                                      r.id === req.id ? { ...r, completed: !r.completed } : r
-                                    )
-                                  }
+                                  ...p,
+                                  requirements: p.requirements.map(r =>
+                                    r.id === req.id ? { ...r, completed: !r.completed } : r
+                                  )
+                                }
                                 : p
                             );
                             onUpdate({ ...project, phases: updatedPhases });
@@ -2241,7 +2241,7 @@ const RisksTab: React.FC<{
             Add Risk
           </Button>
         </div>
-        
+
         <div className="space-y-3">
           {project.risks && project.risks.length > 0 ? (
             project.risks.map(risk => (
@@ -2296,7 +2296,7 @@ const RisksTab: React.FC<{
             Add Issue
           </Button>
         </div>
-        
+
         <div className="space-y-3">
           {project.issues && project.issues.length > 0 ? (
             project.issues.map(issue => (
@@ -2344,7 +2344,7 @@ const TimelineTab: React.FC<{ project: Project }> = ({ project }) => {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold text-white">Project Timeline</h3>
-      
+
       <div className="relative">
         {/* Timeline visualization */}
         <div className="space-y-4">
@@ -2426,7 +2426,7 @@ const ActivityTab: React.FC<{
       {/* Comments Section */}
       <div>
         <h3 className="text-lg font-semibold text-white mb-4">Comments & Discussion</h3>
-        
+
         <div className="mb-4">
           <textarea
             value={newComment}
