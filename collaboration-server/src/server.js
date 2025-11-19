@@ -12,6 +12,8 @@ const helmet = require("helmet"); // NEW: Security headers
 const rateLimit = require("express-rate-limit"); // NEW: Rate limiting
 const roomRoutes = require("./routes/roomRoutes");
 const authRoutes = require("./routes/authRoutes");
+const geminiRoutes = require("./routes/geminiRoutes");
+const projectRoutes = require("./routes/projectRoutes");
 // const socketAuth = require("./middleware/socketAuth"); // COMMENTED OUT FOR VERCEL DEPLOYMENT
 // const { Server } = require("socket.io"); // COMMENTED OUT FOR VERCEL DEPLOYMENT
 
@@ -180,8 +182,10 @@ app.get("/api/health", (req, res) => {
 });
 
 //routes
-app.use("/api/auth", authLimiter, authRoutes); // Add auth rate limiter
+app.use("/api/auth", authLimiter, authRoutes);
+app.use("/api/gemini", geminiRoutes);
 app.use("/api/rooms", roomRoutes);
+app.use("/api/projects", projectRoutes);
 app.use((err, req, res, next) => {
   console.error("unhandelled error", err);
   res.status(err.status || 500).json({

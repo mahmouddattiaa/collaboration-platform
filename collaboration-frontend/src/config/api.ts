@@ -1,7 +1,11 @@
-// API Base URLs - Updated for Vercel deployment
-// Using stable Vercel production URL - this URL never changes!
-// Format: https://[project-name].vercel.app (not the deployment-specific URLs)
-const BACKEND_URL = "https://collaboration-flame.vercel.app";
+// API Base URLs - Auto-detect environment
+// In development (localhost), use local backend
+// In production (Vercel), use production backend
+const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+const BACKEND_URL = isDevelopment 
+  ? "http://localhost:4001"  // Local backend
+  : "https://collaboration-flame.vercel.app"; // Production backend
 
 export const API_BASE_URL = BACKEND_URL;
 export const COLLAB_BASE_URL = BACKEND_URL;
@@ -39,6 +43,14 @@ export const API_ENDPOINTS = {
   // AI
   GEMINI_GENERATE: '/api/gemini/generate',
   GEMINI_CHAT: '/api/gemini/chat',
+
+  // Projects
+  GET_PROJECTS: '/api/projects/room',
+  GET_PROJECT: '/api/projects',
+  CREATE_PROJECT: '/api/projects',
+  UPDATE_PROJECT: '/api/projects',
+  DELETE_PROJECT: '/api/projects',
+  BULK_UPDATE_PROJECTS: '/api/projects/bulk',
 
   // Subjects
   CREATE_SUBJECT: '/api/subjects/create',

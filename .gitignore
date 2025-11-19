@@ -36,3 +36,6 @@ uploads/
 # Testing
 coverage/
 .vercel
+
+.gemini/
+gha-creds-*.json

@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { projectService } from '@/services/projectService';
 
 interface Requirement {
   id: number;
@@ -34,12 +35,28 @@ interface Phase {
   name: string;
   description: string;
   requirements: Requirement[];
-  status: 'not-started' | 'in-progress' | 'completed';
+  status: 'not-started' | 'in-progress' | 'completed' | 'blocked' | 'on-hold';
   order: number;
   startDate?: string;
   endDate?: string;
   budget?: number;
   actualCost?: number;
+  // Branch/Dependency features
+  parentPhaseId?: number; // For creating sub-phases (branches)
+  dependsOn?: number[]; // IDs of phases that must be completed first
+  blockedReason?: string; // Why phase is blocked
+  // Enhanced details
+  owner?: string; // Person responsible
+  team?: string[]; // Team members assigned
+  priority?: 'low' | 'medium' | 'high' | 'critical';
+  type?: 'sequential' | 'parallel' | 'optional' | 'milestone'; // Phase type
+  estimatedHours?: number;
+  actualHours?: number;
+  completionPercentage?: number; // Manual override
+  risks?: string[]; // Associated risks
+  deliverables?: string[]; // Expected deliverables
+  notes?: string; // Additional notes
+  color?: string; // Custom color for visualization
 }
 
 interface Milestone {
@@ -112,6 +129,7 @@ interface ActivityLog {
 
 interface Project {
   id: number;
+  _id?: string; // MongoDB document ID
   name: string;
   description: string;
   status: 'planning' | 'active' | 'paused' | 'completed' | 'archived';
@@ -156,7 +174,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
   // View state
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'timeline'>('grid');
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
-  const [detailViewTab, setDetailViewTab] = useState<'overview' | 'tasks' | 'team' | 'budget' | 'risks' | 'timeline' | 'activity'>('overview');
+  const [detailViewTab, setDetailViewTab] = useState<'overview' | 'tasks' | 'team' | 'budget' | 'risks' | 'timeline' | 'activity' | 'structure'>('overview');
 
   // Form state
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -178,34 +196,54 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
   const [filterPriority, setFilterPriority] = useState<'all' | Project['priority']>('all');
   const [sortBy, setSortBy] = useState<'date' | 'priority' | 'progress' | 'name'>('date');
 
-  // Load projects from localStorage
+  // Load projects from MongoDB via API
   useEffect(() => {
-    const savedProjects = localStorage.getItem(`projects-${roomId}`);
-    const savedStarred = localStorage.getItem(`projects-starred-${roomId}`);
-    if (savedProjects) {
-      const loadedProjects = JSON.parse(savedProjects);
-      // Migrate old projects to include phases array
-      const migratedProjects = loadedProjects.map((project: any) => ({
-        ...project,
-        phases: project.phases || []
-      }));
-      setProjects(migratedProjects);
+    const loadProjects = async () => {
+      try {
+        const response = await projectService.getProjects(roomId);
+        if (response.success) {
+          const loadedProjects = response.data.map((project: any) => ({
+            ...project,
+            id: project._id, // Map MongoDB _id to id for local use
+            _id: project._id, // Keep MongoDB _id for updates
+            phases: project.phases || []
+          }));
+          setProjects(loadedProjects);
+        }
+      } catch (error) {
+        console.error('Error loading projects:', error);
+      }
+    };
+
+    if (roomId) {
+      loadProjects();
     }
+  }, [roomId]);
+
+  // Helper function to update project via API
+  const updateProjectInDB = useCallback(async (projectId: number | string, updateData: any) => {
+    try {
+      const response = await projectService.updateProject(projectId.toString(), updateData);
+      if (response.success) {
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error updating project:', error);
+      return false;
+    }
+  }, []);
+
+  // Note: Projects are now saved to MongoDB via API calls, not localStorage
+  // Starred projects are still stored locally (user preference)
+  useEffect(() => {
+    const savedStarred = localStorage.getItem(`projects-starred-${roomId}`);
     if (savedStarred) {
       setStarredProjects(new Set(JSON.parse(savedStarred)));
     }
   }, [roomId]);
 
-  // Save projects to localStorage
-  useEffect(() => {
-    if (projects.length > 0) {
-      localStorage.setItem(`projects-${roomId}`, JSON.stringify(projects));
-    } else {
-      localStorage.removeItem(`projects-${roomId}`);
-    }
-  }, [projects, roomId]);
-
-  // Save starred projects
+  // Save starred projects to localStorage (user preference)
   useEffect(() => {
     if (starredProjects.size > 0) {
       localStorage.setItem(`projects-starred-${roomId}`, JSON.stringify([...starredProjects]));
@@ -215,80 +253,83 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
   }, [starredProjects, roomId]);
 
   // Create or update project
-  const handleSaveProject = useCallback(() => {
+  const handleSaveProject = useCallback(async () => {
     if (!newProjectName.trim()) return;
 
     const tagsArray = newProjectTags.split(',').map(t => t.trim()).filter(t => t);
     const currentUser = 'Current User'; // Get from auth context
 
-    if (editingProjectId !== null) {
-      // Update existing project
-      setProjects(prev => prev.map(project =>
-        project.id === editingProjectId
-          ? {
-            ...project,
-            name: newProjectName,
-            description: newProjectDescription,
-            priority: newProjectPriority,
-            startDate: newProjectStartDate,
-            dueDate: newProjectDueDate,
-            tags: tagsArray,
-            budget: newProjectBudget ? parseFloat(newProjectBudget) : project.budget,
-            client: newProjectClient || project.client,
-            projectManager: newProjectManager || project.projectManager,
-            category: newProjectCategory || project.category,
-            activityLog: [
-              ...(project.activityLog || []),
-              {
-                id: Date.now(),
-                action: 'Project updated',
-                user: currentUser,
-                timestamp: new Date().toLocaleString(),
-                details: 'Project details were modified'
-              }
-            ]
-          }
-          : project
-      ));
-      setEditingProjectId(null);
-    } else {
-      // Create new project
-      const newProject: Project = {
-        id: Date.now(),
-        name: newProjectName,
-        description: newProjectDescription,
-        status: 'planning',
-        priority: newProjectPriority,
-        progress: 0,
-        startDate: newProjectStartDate || new Date().toISOString().split('T')[0],
-        dueDate: newProjectDueDate,
-        teamMembers: [],
-        milestones: [],
-        phases: [],
-        tags: tagsArray,
-        createdAt: new Date().toLocaleString(),
-        starred: false,
-        budget: newProjectBudget ? parseFloat(newProjectBudget) : undefined,
-        actualCost: 0,
-        estimatedHours: 0,
-        actualHours: 0,
-        client: newProjectClient || undefined,
-        projectManager: newProjectManager || undefined,
-        category: newProjectCategory || undefined,
-        risks: [],
-        issues: [],
-        comments: [],
-        attachments: [],
-        activityLog: [{
-          id: Date.now(),
-          action: 'Project created',
-          user: currentUser,
-          timestamp: new Date().toLocaleString()
-        }],
-        objectives: [],
-        successCriteria: []
-      };
-      setProjects(prev => [newProject, ...prev]);
+    try {
+      if (editingProjectId !== null) {
+        // Update existing project via API
+        const updateData = {
+          name: newProjectName,
+          description: newProjectDescription,
+          priority: newProjectPriority,
+          startDate: newProjectStartDate,
+          dueDate: newProjectDueDate,
+          tags: tagsArray,
+          budget: newProjectBudget ? parseFloat(newProjectBudget) : undefined,
+          client: newProjectClient || undefined,
+          projectManager: newProjectManager || undefined,
+          category: newProjectCategory || undefined,
+        };
+
+        const response = await projectService.updateProject(editingProjectId, updateData);
+        
+        if (response.success) {
+          setProjects(prev => prev.map(project =>
+            project.id === editingProjectId
+              ? { ...response.data, id: response.data._id }
+              : project
+          ));
+        }
+        setEditingProjectId(null);
+      } else {
+        // Create new project via API
+        const newProjectData = {
+          roomId,
+          name: newProjectName,
+          description: newProjectDescription,
+          status: 'planning',
+          priority: newProjectPriority,
+          progress: 0,
+          startDate: newProjectStartDate || new Date().toISOString().split('T')[0],
+          dueDate: newProjectDueDate,
+          tags: tagsArray,
+          budget: newProjectBudget ? parseFloat(newProjectBudget) : undefined,
+          actualCost: 0,
+          client: newProjectClient || undefined,
+          projectManager: newProjectManager || undefined,
+          category: newProjectCategory || undefined,
+          phases: [],
+          milestones: [],
+          team: [],
+          risks: [],
+          issues: [],
+          comments: [],
+          attachments: [],
+        };
+
+        const response = await projectService.createProject(newProjectData);
+        
+        if (response.success) {
+          const createdProject = {
+            ...response.data,
+            id: response.data._id,
+            teamMembers: response.data.team || [],
+            createdAt: new Date(response.data.createdAt).toLocaleString(),
+            starred: false,
+            estimatedHours: 0,
+            actualHours: 0,
+          };
+          setProjects(prev => [...prev, createdProject]);
+        }
+      }
+    } catch (error) {
+      console.error('Error saving project:', error);
+      alert('Failed to save project. Please try again.');
+      return;
     }
 
     // Reset form
@@ -303,16 +344,24 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
     setNewProjectManager('');
     setNewProjectCategory('');
     setShowCreateForm(false);
-  }, [newProjectName, newProjectDescription, newProjectPriority, newProjectStartDate, newProjectDueDate, newProjectTags, newProjectBudget, newProjectClient, newProjectManager, newProjectCategory, editingProjectId]);
+  }, [newProjectName, newProjectDescription, newProjectPriority, newProjectStartDate, newProjectDueDate, newProjectTags, newProjectBudget, newProjectClient, newProjectManager, newProjectCategory, editingProjectId, roomId]);
 
   // Delete project
-  const handleDeleteProject = useCallback((projectId: number) => {
-    setProjects(prev => prev.filter(p => p.id !== projectId));
-    setStarredProjects(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(projectId);
-      return newSet;
-    });
+  const handleDeleteProject = useCallback(async (projectId: number) => {
+    try {
+      const response = await projectService.deleteProject(projectId);
+      if (response.success) {
+        setProjects(prev => prev.filter(p => p.id !== projectId));
+        setStarredProjects(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(projectId);
+          return newSet;
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      alert('Failed to delete project. Please try again.');
+    }
   }, []);
 
   // Toggle project star
@@ -329,21 +378,36 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
   }, []);
 
   // Update project status
-  const handleUpdateStatus = useCallback((projectId: number, newStatus: Project['status']) => {
-    setProjects(prev => prev.map(project =>
-      project.id === projectId ? { ...project, status: newStatus } : project
-    ));
+  const handleUpdateStatus = useCallback(async (projectId: number, newStatus: Project['status']) => {
+    try {
+      const response = await projectService.updateProject(projectId, { status: newStatus });
+      if (response.success) {
+        setProjects(prev => prev.map(project =>
+          project.id === projectId ? { ...project, status: newStatus } : project
+        ));
+      }
+    } catch (error) {
+      console.error('Error updating project status:', error);
+    }
   }, []);
 
   // Update project progress
-  const handleUpdateProgress = useCallback((projectId: number, newProgress: number) => {
-    setProjects(prev => prev.map(project =>
-      project.id === projectId ? { ...project, progress: Math.min(100, Math.max(0, newProgress)) } : project
-    ));
+  const handleUpdateProgress = useCallback(async (projectId: number, newProgress: number) => {
+    const clampedProgress = Math.min(100, Math.max(0, newProgress));
+    try {
+      const response = await projectService.updateProject(projectId, { progress: clampedProgress });
+      if (response.success) {
+        setProjects(prev => prev.map(project =>
+          project.id === projectId ? { ...project, progress: clampedProgress } : project
+        ));
+      }
+    } catch (error) {
+      console.error('Error updating project progress:', error);
+    }
   }, []);
 
   // Add milestone
-  const handleAddMilestone = useCallback((projectId: number, milestoneTitle: string, dueDate: string) => {
+  const handleAddMilestone = useCallback(async (projectId: number, milestoneTitle: string, dueDate: string) => {
     if (!milestoneTitle.trim()) return;
 
     const newMilestone: Milestone = {
@@ -353,12 +417,20 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
       dueDate: dueDate
     };
 
-    setProjects(prev => prev.map(project =>
-      project.id === projectId
-        ? { ...project, milestones: [...project.milestones, newMilestone] }
-        : project
-    ));
-  }, []);
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+
+    const updatedMilestones = [...project.milestones, newMilestone];
+    const success = await updateProjectInDB(projectId, { milestones: updatedMilestones });
+    
+    if (success) {
+      setProjects(prev => prev.map(p =>
+        p.id === projectId
+          ? { ...p, milestones: updatedMilestones }
+          : p
+      ));
+    }
+  }, [projects, updateProjectInDB]);
 
   // Toggle milestone completion
   const handleToggleMilestone = useCallback((projectId: number, milestoneId: number) => {
@@ -463,56 +535,92 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
   const [expandedPhases, setExpandedPhases] = useState<Set<number>>(new Set());
   const [selectedProjectForPhases, setSelectedProjectForPhases] = useState<number | null>(null);
 
-  // Add new phase to project
-  const handleAddPhase = useCallback((projectId: number, phaseName: string, phaseDescription: string) => {
-    if (!phaseName.trim()) return;
+  // Add new phase to project (Enhanced to support all new fields)
+  const handleAddPhase = useCallback(async (projectId: number, phaseData: Partial<Phase> | string, phaseDescription?: string) => {
+    // Support both old signature (name, description) and new signature (phaseData object)
+    const isOldSignature = typeof phaseData === 'string';
+    const name = isOldSignature ? phaseData : (phaseData as Partial<Phase>).name || '';
+    const description = isOldSignature ? phaseDescription : (phaseData as Partial<Phase>).description;
+    
+    if (!name.trim()) return;
 
-    const newPhase: Phase = {
+    const newPhase: Phase = isOldSignature ? {
       id: Date.now(),
-      name: phaseName,
-      description: phaseDescription,
+      name,
+      description: description || '',
       requirements: [],
       status: 'not-started',
       order: 0
+    } : {
+      id: Date.now(),
+      name,
+      description: description || '',
+      requirements: [],
+      status: 'not-started',
+      order: 0,
+      ...(phaseData as Partial<Phase>),
     };
 
-    setProjects(prev => prev.map(project => {
-      if (project.id === projectId) {
-        const phases = [...project.phases, { ...newPhase, order: project.phases.length }];
-        return { ...project, phases };
-      }
-      return project;
-    }));
-  }, []);
+    // Find the project and get MongoDB ID
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+    
+    const mongoId = project._id || projectId;
+    const updatedPhases = [...project.phases, { ...newPhase, order: project.phases.length }];
+
+    // Update local state
+    setProjects(prev => prev.map(p => 
+      p.id === projectId ? { ...p, phases: updatedPhases } : p
+    ));
+
+    // Save to MongoDB
+    try {
+      await updateProjectInDB(mongoId, { phases: updatedPhases });
+    } catch (error) {
+      console.error('Error saving phase:', error);
+    }
+  }, [projects, updateProjectInDB]);
 
   // Delete phase
-  const handleDeletePhase = useCallback((projectId: number, phaseId: number) => {
-    setProjects(prev => prev.map(project => {
-      if (project.id === projectId) {
-        const phases = project.phases
-          .filter(p => p.id !== phaseId)
-          .map((p, index) => ({ ...p, order: index }));
-        return { ...project, phases };
-      }
-      return project;
-    }));
-  }, []);
+  const handleDeletePhase = useCallback(async (projectId: number, phaseId: number) => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+    
+    const mongoId = project._id || projectId;
+    const updatedPhases = project.phases
+      .filter(p => p.id !== phaseId)
+      .map((p, index) => ({ ...p, order: index }));
+
+    // Update local state
+    setProjects(prev => prev.map(p => 
+      p.id === projectId ? { ...p, phases: updatedPhases } : p
+    ));
+
+    // Save to MongoDB
+    await updateProjectInDB(mongoId, { phases: updatedPhases });
+  }, [projects, updateProjectInDB]);
 
   // Update phase status
-  const handleUpdatePhaseStatus = useCallback((projectId: number, phaseId: number, status: Phase['status']) => {
-    setProjects(prev => prev.map(project => {
-      if (project.id === projectId) {
-        const phases = project.phases.map(p =>
-          p.id === phaseId ? { ...p, status } : p
-        );
-        return { ...project, phases };
-      }
-      return project;
-    }));
-  }, []);
+  const handleUpdatePhaseStatus = useCallback(async (projectId: number, phaseId: number, status: Phase['status']) => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+    
+    const mongoId = project._id || projectId;
+    const updatedPhases = project.phases.map(p =>
+      p.id === phaseId ? { ...p, status } : p
+    );
+
+    // Update local state
+    setProjects(prev => prev.map(p => 
+      p.id === projectId ? { ...p, phases: updatedPhases } : p
+    ));
+
+    // Save to MongoDB
+    await updateProjectInDB(mongoId, { phases: updatedPhases });
+  }, [projects, updateProjectInDB]);
 
   // Add requirement to phase
-  const handleAddRequirement = useCallback((projectId: number, phaseId: number, requirement: Partial<Requirement>) => {
+  const handleAddRequirement = useCallback(async (projectId: number, phaseId: number, requirement: Partial<Requirement>) => {
     if (!requirement.title?.trim()) return;
 
     const newRequirement: Requirement = {
@@ -521,82 +629,100 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
       description: requirement.description || '',
       completed: false,
       priority: requirement.priority || 'medium',
+      status: 'todo',
       assignedTo: requirement.assignedTo,
       dueDate: requirement.dueDate
     };
 
-    setProjects(prev => prev.map(project => {
-      if (project.id === projectId) {
-        const phases = project.phases.map(phase => {
-          if (phase.id === phaseId) {
-            return {
-              ...phase,
-              requirements: [...phase.requirements, newRequirement]
-            };
-          }
-          return phase;
-        });
-        return { ...project, phases };
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+    
+    const mongoId = project._id || projectId;
+    const updatedPhases = project.phases.map(phase => {
+      if (phase.id === phaseId) {
+        return {
+          ...phase,
+          requirements: [...phase.requirements, newRequirement]
+        };
       }
-      return project;
-    }));
-  }, []);
+      return phase;
+    });
+
+    // Update local state
+    setProjects(prev => prev.map(p => 
+      p.id === projectId ? { ...p, phases: updatedPhases } : p
+    ));
+
+    // Save to MongoDB
+    await updateProjectInDB(mongoId, { phases: updatedPhases });
+  }, [projects, updateProjectInDB]);
 
   // Toggle requirement completion
-  const handleToggleRequirement = useCallback((projectId: number, phaseId: number, requirementId: number) => {
-    setProjects(prev => prev.map(project => {
-      if (project.id === projectId) {
-        const phases = project.phases.map(phase => {
-          if (phase.id === phaseId) {
-            const requirements = phase.requirements.map(req =>
-              req.id === requirementId ? { ...req, completed: !req.completed } : req
-            );
-
-            // Auto-update phase status based on requirements
-            const allCompleted = requirements.every(r => r.completed);
-            const anyInProgress = requirements.some(r => r.completed);
-            const newPhaseStatus = allCompleted ? 'completed' : (anyInProgress ? 'in-progress' : 'not-started');
-
-            return {
-              ...phase,
-              requirements,
-              status: newPhaseStatus
-            };
-          }
-          return phase;
-        });
-
-        // Calculate overall project progress
-        const totalRequirements = phases.reduce((sum, p) => sum + p.requirements.length, 0);
-        const completedRequirements = phases.reduce((sum, p) =>
-          sum + p.requirements.filter(r => r.completed).length, 0
+  const handleToggleRequirement = useCallback(async (projectId: number, phaseId: number, requirementId: number) => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+    
+    const mongoId = project._id || projectId;
+    const updatedPhases = project.phases.map(phase => {
+      if (phase.id === phaseId) {
+        const requirements = phase.requirements.map(req =>
+          req.id === requirementId ? { ...req, completed: !req.completed } : req
         );
-        const progress = totalRequirements > 0 ? Math.round((completedRequirements / totalRequirements) * 100) : 0;
 
-        return { ...project, phases, progress };
+        // Auto-update phase status based on requirements
+        const allCompleted = requirements.every(r => r.completed);
+        const anyInProgress = requirements.some(r => r.completed);
+        const newPhaseStatus = allCompleted ? 'completed' : (anyInProgress ? 'in-progress' : 'not-started');
+
+        return {
+          ...phase,
+          requirements,
+          status: newPhaseStatus
+        };
       }
-      return project;
-    }));
-  }, []);
+      return phase;
+    });
+
+    // Calculate overall project progress
+    const totalRequirements = updatedPhases.reduce((sum, p) => sum + p.requirements.length, 0);
+    const completedRequirements = updatedPhases.reduce((sum, p) =>
+      sum + p.requirements.filter(r => r.completed).length, 0
+    );
+    const progress = totalRequirements > 0 ? Math.round((completedRequirements / totalRequirements) * 100) : 0;
+
+    // Update local state
+    setProjects(prev => prev.map(p => 
+      p.id === projectId ? { ...p, phases: updatedPhases, progress } : p
+    ));
+
+    // Save to MongoDB
+    await updateProjectInDB(mongoId, { phases: updatedPhases, progress });
+  }, [projects, updateProjectInDB]);
 
   // Delete requirement
-  const handleDeleteRequirement = useCallback((projectId: number, phaseId: number, requirementId: number) => {
-    setProjects(prev => prev.map(project => {
-      if (project.id === projectId) {
-        const phases = project.phases.map(phase => {
-          if (phase.id === phaseId) {
-            return {
-              ...phase,
-              requirements: phase.requirements.filter(r => r.id !== requirementId)
-            };
-          }
-          return phase;
-        });
-        return { ...project, phases };
+  const handleDeleteRequirement = useCallback(async (projectId: number, phaseId: number, requirementId: number) => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+    
+    const mongoId = project._id || projectId;
+    const updatedPhases = project.phases.map(phase => {
+      if (phase.id === phaseId) {
+        return {
+          ...phase,
+          requirements: phase.requirements.filter(r => r.id !== requirementId)
+        };
       }
-      return project;
-    }));
-  }, []);
+      return phase;
+    });
+
+    // Update local state
+    setProjects(prev => prev.map(p => 
+      p.id === projectId ? { ...p, phases: updatedPhases } : p
+    ));
+
+    // Save to MongoDB
+    await updateProjectInDB(mongoId, { phases: updatedPhases });
+  }, [projects, updateProjectInDB]);
 
   // Toggle phase expansion
   const togglePhaseExpansion = useCallback((phaseId: number) => {
@@ -699,8 +825,22 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
       <ProjectDetailView
         project={selectedProject}
         onClose={() => setSelectedProjectId(null)}
-        onUpdate={(updated) => {
+        onUpdate={async (updated) => {
+          // Update local state
           setProjects(prev => prev.map(p => p.id === updated.id ? updated : p));
+          
+          // Save to MongoDB
+          const mongoId = updated._id || updated.id;
+          await updateProjectInDB(mongoId, {
+            phases: updated.phases,
+            progress: updated.progress,
+            milestones: updated.milestones,
+            teamMembers: updated.teamMembers,
+            risks: updated.risks,
+            issues: updated.issues,
+            comments: updated.comments,
+            attachments: updated.attachments,
+          });
         }}
         detailTab={detailViewTab}
         setDetailTab={setDetailViewTab}
@@ -1374,9 +1514,9 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
                                       {req.priority && req.priority !== 'medium' && (
                                         <Badge className={cn(
                                           'text-[10px] px-1.5 py-0',
-                                          req.priority === 'critical' && 'bg-red-500/20 text-red-400 border-red-500/30',
-                                          req.priority === 'high' && 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-                                          req.priority === 'low' && 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+                                          req.priority === 'critical' && 'bg-red-500/20 text-red-400',
+                                          req.priority === 'high' && 'bg-orange-500/20 text-orange-400',
+                                          req.priority === 'low' && 'bg-gray-500/20 text-gray-400'
                                         )}>
                                           {req.priority}
                                         </Badge>
@@ -1566,8 +1706,9 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
     setLocalProject(project);
   }, [project]);
 
-  const handleSave = () => {
-    onUpdate(localProject);
+  const handleSave = (projectToSave?: Project) => {
+    const projectData = projectToSave || localProject;
+    onUpdate(projectData);
     setEditingOverview(false);
   };
 
@@ -1634,6 +1775,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
           { id: 'budget', label: 'Budget & Time', icon: DollarSign },
           { id: 'risks', label: 'Risks & Issues', icon: AlertTriangle },
           { id: 'timeline', label: 'Timeline', icon: Calendar },
+          { id: 'structure', label: 'Structure', icon: GitBranch },
           { id: 'activity', label: 'Activity', icon: Activity }
         ].map(tab => {
           const Icon = tab.icon;
@@ -1673,6 +1815,9 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
         )}
         {detailTab === 'timeline' && (
           <TimelineTab project={localProject} />
+        )}
+        {detailTab === 'structure' && (
+          <StructureTab project={localProject} />
         )}
         {detailTab === 'activity' && (
           <ActivityTab project={localProject} onUpdate={setLocalProject} onSave={handleSave} />
@@ -1849,7 +1994,7 @@ const OverviewTab: React.FC<{
 const TasksTab: React.FC<{
   project: Project;
   onUpdate: (project: Project) => void;
-  onSave: () => void;
+  onSave: (project: Project) => void;
 }> = ({ project, onUpdate, onSave }) => {
   const [expandedPhases, setExpandedPhases] = useState<Set<number>>(new Set());
 
@@ -1865,15 +2010,118 @@ const TasksTab: React.FC<{
     });
   };
 
+  const handleAddPhase = (projectId: number, phaseData: Partial<Phase>) => {
+    const newPhase: Phase = {
+      id: Date.now(),
+      name: phaseData.name || '',
+      description: phaseData.description || '',
+      requirements: [],
+      status: 'not-started',
+      order: project.phases?.length || 0,
+      ...phaseData,
+    };
+    
+    const updatedPhases = [...(project.phases || []), newPhase];
+    const updatedProject = { ...project, phases: updatedPhases };
+    
+    // Update local state
+    onUpdate(updatedProject);
+    // Save to database immediately
+    onSave(updatedProject);
+  };
+
+  const handleAddRequirement = (phaseId: number, title: string, priority: 'low' | 'medium' | 'high' | 'critical') => {
+    const newRequirement: Requirement = {
+      id: Date.now(),
+      title,
+      description: '',
+      completed: false,
+      priority,
+      status: 'todo'
+    };
+
+    const updatedPhases = project.phases.map(phase => {
+      if (phase.id === phaseId) {
+        return {
+          ...phase,
+          requirements: [...phase.requirements, newRequirement]
+        };
+      }
+      return phase;
+    });
+
+    onUpdate({ ...project, phases: updatedPhases });
+    onSave();
+  };
+
+  const handleToggleRequirement = (phaseId: number, requirementId: number) => {
+    const updatedPhases = project.phases.map(phase => {
+      if (phase.id === phaseId) {
+        const requirements = phase.requirements.map(req =>
+          req.id === requirementId ? { ...req, completed: !req.completed } : req
+        );
+
+        // Auto-update phase status
+        const allCompleted = requirements.every(r => r.completed);
+        const anyInProgress = requirements.some(r => r.completed);
+        const newPhaseStatus = allCompleted ? 'completed' : (anyInProgress ? 'in-progress' : 'not-started');
+
+        return {
+          ...phase,
+          requirements,
+          status: newPhaseStatus
+        };
+      }
+      return phase;
+    });
+
+    // Calculate overall project progress
+    const totalRequirements = updatedPhases.reduce((sum, p) => sum + p.requirements.length, 0);
+    const completedRequirements = updatedPhases.reduce((sum, p) =>
+      sum + p.requirements.filter(r => r.completed).length, 0
+    );
+    const progress = totalRequirements > 0 ? Math.round((completedRequirements / totalRequirements) * 100) : 0;
+
+    onUpdate({ ...project, phases: updatedPhases, progress });
+    onSave();
+  };
+
+  const handleDeletePhase = (phaseId: number) => {
+    const updatedPhases = project.phases
+      .filter(p => p.id !== phaseId)
+      .map((p, index) => ({ ...p, order: index }));
+    
+    onUpdate({ ...project, phases: updatedPhases });
+    onSave();
+  };
+
+  const handleDeleteRequirement = (phaseId: number, requirementId: number) => {
+    const updatedPhases = project.phases.map(phase => {
+      if (phase.id === phaseId) {
+        return {
+          ...phase,
+          requirements: phase.requirements.filter(r => r.id !== requirementId)
+        };
+      }
+      return phase;
+    });
+
+    onUpdate({ ...project, phases: updatedPhases });
+    onSave();
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-white">Project Phases & Tasks</h3>
-        <Button size="sm" className="bg-green-500/20 text-green-400">
-          <Plus className="w-4 h-4 mr-1" />
-          Add Phase
-        </Button>
       </div>
+
+      {/* Add Phase Form */}
+      <AddPhaseForm
+        projectId={project.id}
+        onAdd={handleAddPhase}
+        existingPhases={project.phases || []}
+      />
 
       {project.phases && project.phases.length > 0 ? (
         <div className="space-y-3">
@@ -1923,26 +2171,32 @@ const TasksTab: React.FC<{
 
                 {isExpanded && (
                   <div className="px-4 pb-4 space-y-2 border-t border-white/5">
+                    <div className="flex items-center justify-between mb-2 pt-3">
+                      <span className="text-xs text-white/60">Tasks in this phase</span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeletePhase(phase.id);
+                        }}
+                        className="h-7 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                      >
+                        <Trash2 className="w-3 h-3 mr-1" />
+                        Delete Phase
+                      </Button>
+                    </div>
+
                     {phase.requirements.map(req => (
-                      <div key={req.id} className="flex items-start gap-3 p-3 bg-dark/20 rounded-lg hover:bg-dark/30 transition-colors">
+                      <div key={req.id} className="flex items-start gap-3 p-3 bg-dark/20 rounded-lg hover:bg-dark/30 transition-colors group">
                         <input
                           type="checkbox"
                           checked={req.completed}
-                          onChange={() => {
-                            const updatedPhases = project.phases.map(p =>
-                              p.id === phase.id
-                                ? {
-                                  ...p,
-                                  requirements: p.requirements.map(r =>
-                                    r.id === req.id ? { ...r, completed: !r.completed } : r
-                                  )
-                                }
-                                : p
-                            );
-                            onUpdate({ ...project, phases: updatedPhases });
-                            onSave();
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleToggleRequirement(phase.id, req.id);
                           }}
-                          className="mt-1"
+                          className="mt-1 cursor-pointer"
                         />
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
@@ -1987,8 +2241,26 @@ const TasksTab: React.FC<{
                             )}
                           </div>
                         </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteRequirement(phase.id, req.id);
+                          }}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity h-7 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
                       </div>
                     ))}
+
+                    {/* Add Requirement Form */}
+                    <AddRequirementForm
+                      projectId={project.id}
+                      phaseId={phase.id}
+                      onAdd={handleAddRequirement}
+                    />
                   </div>
                 )}
               </div>
@@ -2085,7 +2357,7 @@ const TeamTab: React.FC<{
           ))
         ) : (
           <div className="col-span-2 text-center py-8 text-white/40">
-            <Users className="w-12 h-12 mx-auto mb-3 opacity-20" />
+            <Users className="w-12 h-12 mb-4 opacity-20" />
             <p>No team members added yet</p>
           </div>
         )}
@@ -2148,12 +2420,11 @@ const BudgetTab: React.FC<{
                 {budgetUsed.toFixed(1)}%
               </span>
             </div>
-            <div className="w-full bg-dark/50 rounded-full h-2 overflow-hidden">
-              <div
-                className={cn(
-                  'h-full transition-all',
-                  budgetUsed > 90 ? 'bg-red-500' : budgetUsed > 75 ? 'bg-yellow-500' : 'bg-gradient-to-r from-green-500 to-blue-500'
-                )}
+            <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+              <div className={cn(
+                'h-full transition-all',
+                budgetUsed > 90 ? 'bg-red-500' : budgetUsed > 75 ? 'bg-yellow-500' : 'bg-gradient-to-r from-green-500 to-blue-500'
+              )}
                 style={{ width: `${Math.min(budgetUsed, 100)}%` }}
               />
             </div>
@@ -2203,11 +2474,10 @@ const BudgetTab: React.FC<{
               </span>
             </div>
             <div className="w-full bg-dark/50 rounded-full h-2 overflow-hidden">
-              <div
-                className={cn(
-                  'h-full transition-all',
-                  timeUsed > 90 ? 'bg-red-500' : timeUsed > 75 ? 'bg-yellow-500' : 'bg-gradient-to-r from-green-500 to-blue-500'
-                )}
+              <div className={cn(
+                'h-full transition-all',
+                timeUsed > 90 ? 'bg-red-500' : timeUsed > 75 ? 'bg-yellow-500' : 'bg-gradient-to-r from-green-500 to-blue-500'
+              )}
                 style={{ width: `${Math.min(timeUsed, 100)}%` }}
               />
             </div>
@@ -2496,192 +2766,834 @@ const ActivityTab: React.FC<{
   );
 };
 
-// ============================================================================
-// HELPER COMPONENTS
-// ============================================================================
+// Enhanced Structure Tab (Tree View with Branches & Dependencies)
+function StructureTab({ project }: { project: Project }) {
+  const [selectedPhase, setSelectedPhase] = useState<number | null>(null);
+  const [showDetails, setShowDetails] = useState(true);
 
-// Helper Component: Add Phase Form
-const AddPhaseForm: React.FC<{
+  // Organize phases by hierarchy (parent-child relationships)
+  const rootPhases = project.phases?.filter(p => !p.parentPhaseId) || [];
+  const getSubPhases = (parentId: number) => 
+    project.phases?.filter(p => p.parentPhaseId === parentId) || [];
+
+  // Get phase dependencies
+  const getPhaseDependencies = (phase: Phase) => {
+    if (!phase.dependsOn || phase.dependsOn.length === 0) return [];
+    return project.phases?.filter(p => phase.dependsOn?.includes(p.id)) || [];
+  };
+
+  // Render a phase node with all details
+  const renderPhaseNode = (phase: Phase, level: number = 1, parentColor?: string) => {
+    const subPhases = getSubPhases(phase.id);
+    const dependencies = getPhaseDependencies(phase);
+    const isSelected = selectedPhase === phase.id;
+    const phaseColor = phase.color || parentColor || '#8b5cf6';
+    
+    const completedReqs = phase.requirements.filter(r => r.completed).length;
+    const totalReqs = phase.requirements.length;
+    const phaseProgress = totalReqs > 0 ? (completedReqs / totalReqs) * 100 : 0;
+
+    // Status colors
+    const statusColors = {
+      'not-started': 'bg-gray-500/20 text-gray-400 border-gray-500/30',
+      'in-progress': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+      'completed': 'bg-green-500/20 text-green-400 border-green-500/30',
+      'blocked': 'bg-red-500/20 text-red-400 border-red-500/30',
+      'on-hold': 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+    };
+
+    const priorityIcons = {
+      low: '🟢',
+      medium: '🟡',
+      high: '🟠',
+      critical: '🔴'
+    };
+
+    const typeIcons = {
+      sequential: '⚡',
+      parallel: '🔀',
+      optional: '⭐',
+      milestone: '🎯'
+    };
+
+    return (
+      <div key={phase.id} className="relative">
+        {/* Phase Node */}
+        <div 
+          className={`relative w-72 p-4 rounded-xl backdrop-blur-sm transition-all duration-300 group cursor-pointer ${
+            isSelected ? 'ring-2 ring-white/40 scale-105' : ''
+          }`}
+          style={{ 
+            background: `linear-gradient(135deg, ${phaseColor}20, ${phaseColor}10)`,
+            borderColor: `${phaseColor}40`,
+            borderWidth: '1px',
+            borderStyle: 'solid'
+          }}
+          onClick={() => setSelectedPhase(isSelected ? null : phase.id)}
+        >
+          {/* Header */}
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex items-center gap-2 flex-1">
+              {phase.parentPhaseId && (
+                <GitBranch className="w-3 h-3 text-white/40" />
+              )}
+              <Badge 
+                variant="outline" 
+                className={`text-[10px] px-2 py-0.5 ${statusColors[phase.status || 'not-started']}`}
+              >
+                {phase.status?.replace('-', ' ') || 'Not Started'}
+              </Badge>
+              {phase.priority && (
+                <span className="text-xs">{priorityIcons[phase.priority]}</span>
+              )}
+              {phase.type && (
+                <span className="text-xs">{typeIcons[phase.type]}</span>
+              )}
+            </div>
+          </div>
+
+          {/* Phase Name */}
+          <h4 className="font-semibold text-white text-sm mb-2">{phase.name}</h4>
+          
+          {/* Description */}
+          {phase.description && (
+            <p className="text-xs text-white/60 mb-3 line-clamp-2">{phase.description}</p>
+          )}
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            {totalReqs > 0 && (
+              <div className="bg-black/20 rounded px-2 py-1.5">
+                <div className="text-[9px] text-white/40">Tasks</div>
+                <div className="text-xs font-bold text-white">{completedReqs}/{totalReqs}</div>
+              </div>
+            )}
+            {phase.estimatedHours && (
+              <div className="bg-black/20 rounded px-2 py-1.5">
+                <div className="text-[9px] text-white/40">Hours</div>
+                <div className="text-xs font-bold text-blue-400">{phase.actualHours || 0}/{phase.estimatedHours}h</div>
+              </div>
+            )}
+            {phase.budget && (
+              <div className="bg-black/20 rounded px-2 py-1.5">
+                <div className="text-[9px] text-white/40">Budget</div>
+                <div className="text-xs font-bold text-green-400">${phase.actualCost || 0}/${phase.budget}</div>
+              </div>
+            )}
+            {phase.owner && (
+              <div className="bg-black/20 rounded px-2 py-1.5">
+                <div className="text-[9px] text-white/40">Owner</div>
+                <div className="text-xs font-bold text-purple-400 truncate">{phase.owner}</div>
+              </div>
+            )}
+          </div>
+
+          {/* Progress Bar */}
+          {totalReqs > 0 && (
+            <div className="w-full h-1.5 bg-black/20 rounded-full overflow-hidden">
+              <div 
+                className="h-full transition-all duration-500"
+                style={{ 
+                  width: `${phaseProgress}%`,
+                  background: `linear-gradient(90deg, ${phaseColor}, ${phaseColor}cc)`
+                }}
+              />
+            </div>
+          )}
+
+          {/* Dependencies Indicator */}
+          {dependencies.length > 0 && (
+            <div className="mt-2 flex items-center gap-1 text-[10px] text-white/40">
+              <Link2 className="w-3 h-3" />
+              <span>Depends on {dependencies.length} phase(s)</span>
+            </div>
+          )}
+
+          {/* Sub-phases Indicator */}
+          {subPhases.length > 0 && (
+            <div className="mt-2 flex items-center gap-1 text-[10px] text-white/40">
+              <GitBranch className="w-3 h-3" />
+              <span>{subPhases.length} branch(es)</span>
+            </div>
+          )}
+
+          {/* Expanded Details */}
+          {isSelected && showDetails && (
+            <div className="mt-3 pt-3 border-t border-white/10 space-y-2 text-xs">
+              {phase.startDate && (
+                <div className="flex items-center gap-2 text-white/60">
+                  <Calendar className="w-3 h-3" />
+                  <span>{phase.startDate} {phase.endDate && `→ ${phase.endDate}`}</span>
+                </div>
+              )}
+              {phase.deliverables && phase.deliverables.length > 0 && (
+                <div className="text-white/60">
+                  <div className="font-semibold mb-1">Deliverables:</div>
+                  <ul className="list-disc list-inside space-y-0.5 text-[10px]">
+                    {phase.deliverables.map((d, i) => (
+                      <li key={i}>{d}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {phase.team && phase.team.length > 0 && (
+                <div className="flex items-center gap-2 text-white/60">
+                  <Users className="w-3 h-3" />
+                  <span>{phase.team.join(', ')}</span>
+                </div>
+              )}
+              {phase.notes && (
+                <div className="text-white/60 text-[10px] italic">{phase.notes}</div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Render Sub-Phases (Branches) */}
+        {subPhases.length > 0 && (
+          <div className="ml-12 mt-6 pl-6 border-l-2 border-white/10 space-y-4">
+            {subPhases.map(subPhase => renderPhaseNode(subPhase, level + 1, phaseColor))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="overflow-auto p-8 min-h-[600px] bg-dark/30 rounded-xl">
+      {/* Controls */}
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+          <GitBranch className="w-5 h-5 text-blue-400" />
+          Project Structure
+        </h3>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => setShowDetails(!showDetails)}
+          className="text-xs text-white/60 hover:text-white"
+        >
+          <Eye className={`w-4 h-4 mr-2 ${!showDetails ? 'opacity-50' : ''}`} />
+          {showDetails ? 'Hide' : 'Show'} Details
+        </Button>
+      </div>
+
+      <div className="flex flex-col items-center">
+        {/* Root Node: Project */}
+        <div className="relative z-10 mb-12">
+          <div className="w-80 p-6 bg-gradient-to-br from-blue-600/20 to-indigo-600/20 border border-blue-500/30 rounded-xl backdrop-blur-md shadow-2xl hover:shadow-blue-500/20 transition-all duration-300 group">
+            <div className="flex items-center justify-between mb-4">
+              <Badge variant="outline" className="bg-blue-500/20 border-blue-500/30 text-blue-300 text-xs">Project Root</Badge>
+              <div className={`w-3 h-3 rounded-full shadow-[0_0_10px_currentColor] ${project.status === 'active' ? 'bg-green-500 text-green-500' : 'bg-yellow-500 text-yellow-500'}`} />
+            </div>
+            <h3 className="font-bold text-white text-2xl mb-3 tracking-tight">{project.name}</h3>
+            {project.description && (
+              <p className="text-sm text-white/70 mb-4">{project.description}</p>
+            )}
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              <div className="bg-black/30 rounded-lg px-3 py-2 text-center">
+                <div className="text-[10px] text-white/40 mb-1">Progress</div>
+                <div className="text-lg font-bold text-white">{project.progress}%</div>
+              </div>
+              <div className="bg-black/30 rounded-lg px-3 py-2 text-center">
+                <div className="text-[10px] text-white/40 mb-1">Phases</div>
+                <div className="text-lg font-bold text-blue-400">{rootPhases.length}</div>
+              </div>
+              <div className="bg-black/30 rounded-lg px-3 py-2 text-center">
+                <div className="text-[10px] text-white/40 mb-1">Total Tasks</div>
+                <div className="text-lg font-bold text-purple-400">
+                  {project.phases?.reduce((sum, p) => sum + p.requirements.length, 0) || 0}
+                </div>
+              </div>
+            </div>
+            {/* Progress Bar */}
+            <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 transition-all duration-500" style={{ width: `${project.progress}%` }} />
+            </div>
+          </div>
+          {/* Vertical Line Down */}
+          {rootPhases.length > 0 && (
+            <div className="absolute top-full left-1/2 w-px h-12 bg-gradient-to-b from-blue-500/30 to-white/10 -translate-x-1/2" />
+          )}
+        </div>
+
+        {/* Root Phases with Branches */}
+        {rootPhases.length > 0 ? (
+          <div className="space-y-8 w-full max-w-4xl">
+            {rootPhases.map((phase) => (
+              <div key={phase.id} className="flex justify-center">
+                {renderPhaseNode(phase)}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center p-12 text-white/40 border-2 border-dashed border-white/10 rounded-xl">
+            <GitBranch className="w-12 h-12 mb-4 opacity-20" />
+            <p className="italic">No phases defined yet.</p>
+            <p className="text-sm mt-2">Add phases in the "Tasks & Phases" tab to visualize the project tree.</p>
+          </div>
+        )}
+
+        {/* Legend */}
+        {rootPhases.length > 0 && (
+          <div className="mt-12 p-4 bg-black/20 rounded-xl border border-white/10 w-full max-w-4xl">
+            <h4 className="text-sm font-semibold text-white mb-3">Legend</h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+              <div className="flex items-center gap-2">
+                <span>⚡</span>
+                <span className="text-white/60">Sequential</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span>🔀</span>
+                <span className="text-white/60">Parallel</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span>⭐</span>
+                <span className="text-white/60">Optional</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span>🎯</span>
+                <span className="text-white/60">Milestone</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <GitBranch className="w-3 h-3 text-white/60" />
+                <span className="text-white/60">Sub-phase</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Link2 className="w-3 h-3 text-white/60" />
+                <span className="text-white/60">Dependencies</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span>🟢</span>
+                <span className="text-white/60">Low Priority</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span>🔴</span>
+                <span className="text-white/60">Critical</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Old Structure Tab preserved below for reference
+function OldStructureTab({ project }: { project: Project }) {
+  return (
+    <div className="overflow-auto p-8 min-h-[600px] flex justify-center bg-dark/30 rounded-xl">
+      <div className="flex flex-col items-center">
+        {/* Root Node: Project */}
+        <div className="relative z-10 mb-12">
+          <div className="w-72 p-5 bg-gradient-to-br from-blue-600/20 to-indigo-600/20 border border-blue-500/30 rounded-xl backdrop-blur-md shadow-xl hover:shadow-blue-500/10 transition-all duration-300 group">
+            <div className="flex items-center justify-between mb-3">
+              <Badge variant="outline" className="bg-blue-500/20 border-blue-500/30 text-blue-300">Project Root</Badge>
+              <div className={`w-2.5 h-2.5 rounded-full shadow-[0_0_8px_currentColor] ${project.status === 'active' ? 'bg-green-500 text-green-500' : 'bg-yellow-500 text-yellow-500'}`} />
+            </div>
+            <h3 className="font-bold text-white text-xl mb-2 truncate tracking-tight">{project.name}</h3>
+            <div className="flex items-center justify-between text-xs text-white/60 mb-3">
+              <span className="flex items-center gap-1"><Activity className="w-3 h-3" /> {project.progress}%</span>
+              <span className="flex items-center gap-1"><Layers className="w-3 h-3" /> {project.phases?.length || 0} Phases</span>
+            </div>
+            {/* Progress Bar */}
+            <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-500" style={{ width: `${project.progress}%` }} />
+            </div>
+          </div>
+          {/* Vertical Line Down */}
+          {project.phases && project.phases.length > 0 && (
+            <div className="absolute top-full left-1/2 w-px h-12 bg-gradient-to-b from-blue-500/30 to-white/10 -translate-x-1/2" />
+          )}
+        </div>
+
+        {/* Level 1: Phases */}
+        {project.phases && project.phases.length > 0 && (
+          <div className="flex items-start gap-8 relative">
+            {/* Horizontal Connector Bar */}
+            {project.phases.length > 1 && (
+              <div className="absolute -top-12 left-0 right-0 h-px bg-white/10 mx-[calc(100%/2/var(--count))]" />
+            )}
+            
+            {project.phases.map((phase, index) => {
+              const isFirst = index === 0;
+              const isLast = index === project.phases.length - 1;
+              const isOnly = project.phases.length === 1;
+
+              return (
+                <div key={phase.id} className="flex flex-col items-center relative">
+                   {/* Connectors */}
+                   {!isOnly && (
+                     <>
+                       {/* Vertical line up */}
+                       <div className="absolute -top-12 left-1/2 w-px h-12 bg-white/10 -translate-x-1/2" />
+                       {/* Horizontal line segments for first/last to create the T shape properly */}
+                       <div className={`absolute -top-12 h-px bg-white/10 
+                         ${isFirst ? 'left-1/2 w-[calc(50%+1rem)]' : ''} 
+                         ${isLast ? 'right-1/2 w-[calc(50%+1rem)]' : ''}
+                         ${!isFirst && !isLast ? 'w-[calc(100%+2rem)] left-[-1rem]' : ''}
+                       `} />
+                     </>
+                   )}
+                   {isOnly && (
+                      <div className="absolute -top-12 left-1/2 w-px h-12 bg-white/10 -translate-x-1/2" />
+                   )}
+                   
+                   {/* Phase Node */}
+                   <div className="w-56 p-4 bg-purple-500/10 border border-purple-500/20 rounded-xl backdrop-blur-sm mb-8 hover:bg-purple-500/20 transition-all duration-300 group relative">
+                     {/* Node connection point top */}
+                     <div className="absolute -top-1 left-1/2 w-2 h-2 bg-purple-500/50 rounded-full -translate-x-1/2" />
+                     
+                     <div className="flex items-center justify-between mb-2">
+                       <Badge variant="outline" className="text-[10px] h-5 bg-purple-500/20 border-purple-500/30 text-purple-300">Phase {index + 1}</Badge>
+                       <span className={`text-[10px] uppercase font-bold ${phase.status === 'completed' ? 'text-green-400' : 'text-white/40'}`}>{phase.status}</span>
+                     </div>
+                     <div className="font-medium text-white text-sm mb-1">{phase.name}</div>
+                     <div className="text-xs text-white/50 truncate mb-3">{phase.description || 'No description'}</div>
+                     
+                     {/* Phase Stats */}
+                     <div className="flex gap-2">
+                        <div className="flex-1 bg-black/20 rounded px-2 py-1 text-center">
+                           <div className="text-[10px] text-white/40">Tasks</div>
+                           <div className="text-xs font-bold text-white">{phase.requirements?.length || 0}</div>
+                        </div>
+                        <div className="flex-1 bg-black/20 rounded px-2 py-1 text-center">
+                           <div className="text-[10px] text-white/40">Done</div>
+                           <div className="text-xs font-bold text-green-400">{phase.requirements?.filter(r => r.completed).length || 0}</div>
+                        </div>
+                     </div>
+
+                     {/* Node connection point bottom (if has children) */}
+                     {phase.requirements && phase.requirements.length > 0 && (
+                        <div className="absolute -bottom-1 left-1/2 w-2 h-2 bg-purple-500/50 rounded-full -translate-x-1/2" />
+                     )}
+                   </div>
+
+                   {/* Level 2: Requirements/Milestones */}
+                   {phase.requirements && phase.requirements.length > 0 && (
+                     <div className="flex flex-col gap-3 relative pl-6 border-l-2 border-white/5 ml-6 pb-4">
+                       {phase.requirements.map(req => (
+                         <div key={req.id} className="relative group/req">
+                           {/* Horizontal connector from vertical line */}
+                           <div className="absolute top-3 -left-[1.6rem] w-4 h-0.5 bg-white/5 group-hover/req:bg-white/20 transition-colors" />
+                           <div className="absolute top-[0.65rem] -left-[1.6rem] w-2 h-2 rounded-full bg-dark border border-white/10 z-10" />
+                           
+                           <div className={`p-3 rounded-lg border text-xs w-48 transition-all duration-200 hover:scale-105 cursor-default
+                             ${req.completed 
+                               ? 'bg-green-500/10 border-green-500/20 text-green-300 shadow-[0_0_10px_rgba(34,197,94,0.1)]' 
+                               : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'}
+                           `}>
+                             <div className="flex items-start gap-2">
+                               <div className={`mt-0.5 w-1.5 h-1.5 rounded-full flex-shrink-0 ${req.priority === 'high' || req.priority === 'critical' ? 'bg-red-400 shadow-[0_0_5px_rgba(248,113,113,0.5)]' : 'bg-blue-400'}`} />
+                               <div className="flex-1">
+                                 <div className="font-medium mb-0.5">{req.title}</div>
+                                 {req.assignedTo && <div className="text-[10px] opacity-50 flex items-center gap-1"><User className="w-2 h-2" /> {req.assignedTo}</div>}
+                               </div>
+                               {req.completed && <CheckCircle2 className="w-3 h-3 text-green-500 flex-shrink-0" />}
+                             </div>
+                           </div>
+                         </div>
+                       ))}
+                     </div>
+                   )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        
+        {(!project.phases || project.phases.length === 0) && (
+          <div className="flex flex-col items-center justify-center p-12 text-white/40 border-2 border-dashed border-white/10 rounded-xl">
+            <GitBranch className="w-12 h-12 mb-4 opacity-20" />
+            <p className="italic">No phases defined yet.</p>
+            <p className="text-sm mt-2">Add phases in the "Tasks & Phases" tab to visualize the project tree.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Enhanced Add Phase Form Component
+function AddPhaseForm({ projectId, onAdd, existingPhases }: {
   projectId: number;
-  onAdd: (projectId: number, name: string, description: string) => void;
-}> = ({ projectId, onAdd }) => {
+  onAdd: (projectId: number, phaseData: Partial<Phase>) => void;
+  existingPhases?: Phase[];
+}) {
   const [isAdding, setIsAdding] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  
+  // Basic fields
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'critical'>('medium');
+  const [type, setType] = useState<'sequential' | 'parallel' | 'optional' | 'milestone'>('sequential');
+  
+  // Advanced fields
+  const [owner, setOwner] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [budget, setBudget] = useState('');
+  const [estimatedHours, setEstimatedHours] = useState('');
+  const [dependsOn, setDependsOn] = useState<number[]>([]);
+  const [parentPhaseId, setParentPhaseId] = useState<number | undefined>(undefined);
+  const [deliverables, setDeliverables] = useState('');
+  const [color, setColor] = useState('#3b82f6');
 
   const handleSubmit = () => {
-    if (name.trim()) {
-      onAdd(projectId, name.trim(), description.trim());
-      setName('');
-      setDescription('');
-      setIsAdding(false);
-    }
+    if (!name.trim()) return;
+    
+    const phaseData: Partial<Phase> = {
+      name,
+      description,
+      priority,
+      type,
+      owner: owner || undefined,
+      startDate: startDate || undefined,
+      endDate: endDate || undefined,
+      budget: budget ? parseFloat(budget) : undefined,
+      estimatedHours: estimatedHours ? parseFloat(estimatedHours) : undefined,
+      dependsOn: dependsOn.length > 0 ? dependsOn : undefined,
+      parentPhaseId,
+      deliverables: deliverables ? deliverables.split(',').map(d => d.trim()).filter(d => d) : undefined,
+      color: color !== '#3b82f6' ? color : undefined,
+    };
+    
+    onAdd(projectId, phaseData);
+    
+    // Reset form
+    setName('');
+    setDescription('');
+    setPriority('medium');
+    setType('sequential');
+    setOwner('');
+    setStartDate('');
+    setEndDate('');
+    setBudget('');
+    setEstimatedHours('');
+    setDependsOn([]);
+    setParentPhaseId(undefined);
+    setDeliverables('');
+    setColor('#3b82f6');
+    setIsAdding(false);
+    setShowAdvanced(false);
   };
 
   if (!isAdding) {
     return (
       <Button
+        variant="ghost"
         size="sm"
-        variant="outline"
         onClick={() => setIsAdding(true)}
-        className="w-full text-xs h-8 border-dashed border-white/20 text-white/60 hover:text-white hover:border-white/40"
+        className="w-full border border-dashed border-white/10 text-white/40 hover:text-white hover:bg-white/5 hover:border-white/20 h-10"
       >
-        <Plus className="w-3 h-3 mr-1" />
+        <Plus className="w-4 h-4 mr-2" />
         Add Phase
       </Button>
     );
   }
 
   return (
-    <div className="bg-dark/30 rounded-lg border border-white/10 p-3 space-y-2">
+    <div className="bg-gradient-to-br from-black/40 to-black/20 rounded-lg p-4 border border-white/10 space-y-3">
+      <div className="flex items-center justify-between mb-2">
+        <h4 className="text-sm font-semibold text-white flex items-center gap-2">
+          <Layers className="w-4 h-4 text-blue-400" />
+          New Phase
+        </h4>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowAdvanced(!showAdvanced)}
+          className="h-6 text-xs text-white/60 hover:text-white"
+        >
+          {showAdvanced ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          {showAdvanced ? 'Less' : 'More'} Options
+        </Button>
+      </div>
+
+      {/* Basic Fields */}
       <Input
-        placeholder="Phase name (e.g., Planning, Development, Testing)"
         value={name}
         onChange={(e) => setName(e.target.value)}
-        className="bg-dark/50 border-white/10 text-white text-xs h-8"
+        placeholder="Phase Name (e.g., Planning, Development)"
+        className="bg-black/30 border-white/10 h-9 text-sm text-white"
         autoFocus
       />
-      <Input
-        placeholder="Phase description (optional)"
+      
+      <textarea
         value={description}
         onChange={(e) => setDescription(e.target.value)}
-        className="bg-dark/50 border-white/10 text-white text-xs h-8"
+        placeholder="Description..."
+        className="w-full bg-black/30 text-white placeholder:text-white/30 border border-white/10 rounded-lg p-2 min-h-[60px] focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none text-sm"
       />
-      <div className="flex gap-2">
+
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="text-xs text-white/60 mb-1 block">Priority</label>
+          <select
+            value={priority}
+            onChange={(e) => setPriority(e.target.value as any)}
+            className="w-full bg-black/30 text-white border border-white/10 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+          >
+            <option value="low">🟢 Low</option>
+            <option value="medium">🟡 Medium</option>
+            <option value="high">🟠 High</option>
+            <option value="critical">🔴 Critical</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="text-xs text-white/60 mb-1 block">Type</label>
+          <select
+            value={type}
+            onChange={(e) => setType(e.target.value as any)}
+            className="w-full bg-black/30 text-white border border-white/10 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+          >
+            <option value="sequential">⚡ Sequential</option>
+            <option value="parallel">🔀 Parallel</option>
+            <option value="optional">⭐ Optional</option>
+            <option value="milestone">🎯 Milestone</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Advanced Fields */}
+      {showAdvanced && (
+        <div className="space-y-3 pt-2 border-t border-white/10">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs text-white/60 mb-1 block">Start Date</label>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="bg-black/30 border-white/10 h-8 text-xs text-white"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-white/60 mb-1 block">End Date</label>
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="bg-black/30 border-white/10 h-8 text-xs text-white"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs text-white/60 mb-1 block">Budget ($)</label>
+              <Input
+                type="number"
+                value={budget}
+                onChange={(e) => setBudget(e.target.value)}
+                placeholder="0.00"
+                className="bg-black/30 border-white/10 h-8 text-xs text-white"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-white/60 mb-1 block">Est. Hours</label>
+              <Input
+                type="number"
+                value={estimatedHours}
+                onChange={(e) => setEstimatedHours(e.target.value)}
+                placeholder="0"
+                className="bg-black/30 border-white/10 h-8 text-xs text-white"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs text-white/60 mb-1 block">Owner/Responsible</label>
+            <Input
+              value={owner}
+              onChange={(e) => setOwner(e.target.value)}
+              placeholder="Name or email"
+              className="bg-black/30 border-white/10 h-8 text-xs text-white"
+            />
+          </div>
+
+          {existingPhases && existingPhases.length > 0 && (
+            <>
+              <div>
+                <label className="text-xs text-white/60 mb-1 flex items-center gap-1">
+                  <GitBranch className="w-3 h-3" />
+                  Parent Phase (Create Sub-Phase/Branch)
+                </label>
+                <select
+                  value={parentPhaseId || ''}
+                  onChange={(e) => setParentPhaseId(e.target.value ? parseInt(e.target.value) : undefined)}
+                  className="w-full bg-black/30 text-white border border-white/10 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                >
+                  <option value="">None (Root Phase)</option>
+                  {existingPhases.map(phase => (
+                    <option key={phase.id} value={phase.id}>└─ {phase.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs text-white/60 mb-1 flex items-center gap-1">
+                  <Link2 className="w-3 h-3" />
+                  Depends On (Select dependencies)
+                </label>
+                <div className="bg-black/30 border border-white/10 rounded-lg p-2 space-y-1 max-h-32 overflow-y-auto">
+                  {existingPhases.map(phase => (
+                    <label key={phase.id} className="flex items-center gap-2 text-xs text-white/70 hover:text-white cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={dependsOn.includes(phase.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setDependsOn([...dependsOn, phase.id]);
+                          } else {
+                            setDependsOn(dependsOn.filter(id => id !== phase.id));
+                          }
+                        }}
+                        className="cursor-pointer"
+                      />
+                      {phase.name}
+                    </label>
+                  ))}
+                  {existingPhases.length === 0 && (
+                    <p className="text-xs text-white/40">No phases available</p>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+
+          <div>
+            <label className="text-xs text-white/60 mb-1 block">Deliverables (comma separated)</label>
+            <Input
+              value={deliverables}
+              onChange={(e) => setDeliverables(e.target.value)}
+              placeholder="e.g., Design document, Prototype, Code review"
+              className="bg-black/30 border-white/10 h-8 text-xs text-white"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs text-white/60 mb-1 block">Color (for visualization)</label>
+            <div className="flex gap-2">
+              <input
+                type="color"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                className="w-12 h-8 bg-black/30 border border-white/10 rounded cursor-pointer"
+              />
+              <Input
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                className="flex-1 bg-black/30 border-white/10 h-8 text-xs text-white"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="flex gap-2 justify-end pt-2">
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => {
+            setIsAdding(false);
+            setShowAdvanced(false);
+          }}
+          className="h-8 text-xs hover:bg-white/10"
+        >
+          Cancel
+        </Button>
         <Button
           size="sm"
           onClick={handleSubmit}
           disabled={!name.trim()}
-          className="flex-1 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white text-xs h-7"
+          className="h-8 text-xs bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30"
         >
-          <Save className="w-3 h-3 mr-1" />
-          Add
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => {
-            setIsAdding(false);
-            setName('');
-            setDescription('');
-          }}
-          className="border-white/10 text-white/60 text-xs h-7"
-        >
-          <X className="w-3 h-3" />
+          <Plus className="w-3 h-3 mr-1" />
+          Add Phase
         </Button>
       </div>
     </div>
   );
-};
+}
 
-// Helper Component: Add Requirement Form
-const AddRequirementForm: React.FC<{
+// Add Requirement Form Component
+function AddRequirementForm({ projectId, phaseId, onAdd }: {
   projectId: number;
   phaseId: number;
-  onAdd: (projectId: number, phaseId: number, requirement: Partial<Requirement>) => void;
-}> = ({ projectId, phaseId, onAdd }) => {
+  onAdd: (projectId: number, phaseId: number, title: string, priority: 'low' | 'medium' | 'high' | 'critical') => void;
+}) {
   const [isAdding, setIsAdding] = useState(false);
   const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'critical'>('medium');
-  const [assignedTo, setAssignedTo] = useState('');
-  const [dueDate, setDueDate] = useState('');
 
   const handleSubmit = () => {
-    if (title.trim()) {
-      onAdd(projectId, phaseId, {
-        title: title.trim(),
-        description: description.trim(),
-        priority,
-        assignedTo: assignedTo.trim() || undefined,
-        dueDate: dueDate || undefined
-      });
-      setTitle('');
-      setDescription('');
-      setPriority('medium');
-      setAssignedTo('');
-      setDueDate('');
-      setIsAdding(false);
-    }
+    if (!title.trim()) return;
+    onAdd(projectId, phaseId, title, priority);
+    setTitle('');
+    setPriority('medium');
+    setIsAdding(false);
   };
 
   if (!isAdding) {
     return (
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={() => setIsAdding(true)}
-        className="w-full text-left p-2 bg-dark/10 hover:bg-dark/20 rounded border border-dashed border-white/10 hover:border-white/20 transition-colors"
+        className="w-full border border-dashed border-white/10 text-white/40 hover:text-white hover:bg-white/5 hover:border-white/20 h-8 text-xs"
       >
-        <span className="text-xs text-white/40 flex items-center gap-1">
-          <Plus className="w-3 h-3" />
-          Add requirement
-        </span>
-      </button>
+        <Plus className="w-3 h-3 mr-2" />
+        Add Task
+      </Button>
     );
   }
 
   return (
-    <div className="bg-dark/40 rounded border border-white/10 p-2 space-y-2">
+    <div className="bg-black/20 rounded-lg p-2 border border-white/10 mt-2">
       <Input
-        placeholder="Requirement title"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        className="bg-dark/50 border-white/10 text-white text-xs h-7"
+        placeholder="Task Title"
+        className="mb-2 bg-black/20 border-white/10 h-7 text-xs"
         autoFocus
       />
-      <Input
-        placeholder="Description (optional)"
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        className="bg-dark/50 border-white/10 text-white text-xs h-7"
-      />
-      <div className="grid grid-cols-2 gap-2">
-        <select
-          value={priority}
-          onChange={(e) => setPriority(e.target.value as any)}
-          className="bg-dark/50 text-white border border-white/10 rounded px-2 py-1 text-xs"
-        >
-          <option value="low">Low Priority</option>
-          <option value="medium">Medium</option>
-          <option value="high">High</option>
-          <option value="critical">Critical</option>
-        </select>
-        <Input
-          type="date"
-          value={dueDate}
-          onChange={(e) => setDueDate(e.target.value)}
-          className="bg-dark/50 border-white/10 text-white text-xs h-7"
-        />
+      <div className="flex gap-2 mb-2">
+        {(['low', 'medium', 'high', 'critical'] as const).map((p) => (
+          <button
+            key={p}
+            onClick={() => setPriority(p)}
+            className={`px-2 py-1 rounded text-[10px] capitalize border ${
+              priority === p
+                ? 'bg-white/10 border-white/20 text-white'
+                : 'border-transparent text-white/40 hover:text-white/70'
+            }`}
+          >
+            {p}
+          </button>
+        ))}
       </div>
-      <Input
-        placeholder="Assigned to (optional)"
-        value={assignedTo}
-        onChange={(e) => setAssignedTo(e.target.value)}
-        className="bg-dark/50 border-white/10 text-white text-xs h-7"
-      />
-      <div className="flex gap-2">
+      <div className="flex gap-2 justify-end">
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => setIsAdding(false)}
+          className="h-6 text-[10px] hover:bg-white/10"
+        >
+          Cancel
+        </Button>
         <Button
           size="sm"
           onClick={handleSubmit}
           disabled={!title.trim()}
-          className="flex-1 bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 text-xs h-6"
+          className="h-6 text-[10px] bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
         >
-          <Save className="w-3 h-3 mr-1" />
           Add
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => {
-            setIsAdding(false);
-            setTitle('');
-            setDescription('');
-          }}
-          className="border-white/10 text-white/60 text-xs h-6"
-        >
-          <X className="w-3 h-3" />
         </Button>
       </div>
     </div>
   );
-};
+}
 
