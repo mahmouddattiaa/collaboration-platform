@@ -133,7 +133,7 @@ exports.updateProject = async (req, res) => {
 
     // Clean phases data - remove MongoDB's _id field conflicts
     if (updateData.phases && Array.isArray(updateData.phases)) {
-      updateData.phases = updateData.phases.map(phase => {
+      updateData.phases = updateData.phases.map((phase) => {
         const cleanPhase = { ...phase };
         // Remove _id to let MongoDB generate it, keep our custom 'id' field
         delete cleanPhase._id;
@@ -142,24 +142,24 @@ exports.updateProject = async (req, res) => {
     }
 
     // Update the project fields directly
-    Object.keys(updateData).forEach(key => {
+    Object.keys(updateData).forEach((key) => {
       project[key] = updateData[key];
     });
-    
+
     // Add activity log entry
     const activityEntry = {
       action: "Project updated",
-      user: req.user?.name || req.user?.email || 'Unknown',
+      user: req.user?.name || req.user?.email || "Unknown",
       timestamp: new Date(),
       details: "Project details were modified",
     };
-    
+
     // Add activity log
     if (!project.activityLog) {
       project.activityLog = [];
     }
     project.activityLog.push(activityEntry);
-    
+
     // Save the project
     await project.save();
 
