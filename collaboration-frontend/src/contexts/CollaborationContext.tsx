@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { SOCKET_URL, SOCKET_EVENTS } from "@/config/api";
+import { SOCKET_URL } from "@/config/api";
 // import collaborationApi from "@/services/collaboration"; // Commented out - file doesn't exist
 import { useAuth } from "@/contexts/AuthContext";
 
