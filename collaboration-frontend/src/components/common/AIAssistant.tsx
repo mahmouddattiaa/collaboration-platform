@@ -1,33 +1,49 @@
 import React, { useState } from 'react';
-import { Bot, Send } from 'lucide-react';
+import { Bot, Send, Loader } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useAuth } from '@/hooks/useAuth';
+import { geminiService } from '@/services/geminiService';
 
 export function AIAssistant() {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'Hello! How can I help with your project today?' }
   ]);
+  const [isLoading, setIsLoading] = useState(false);
+  const { token } = useAuth();
 
-  const handleSendMessage = () => {
-    if (!input.trim()) return;
-    
-    // Add user message
-    setMessages((prev) => [...prev, { role: 'user', content: input }]);
-    
-    // In a real implementation, you would send the message to an API
-    // For now, just simulate a response
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev, 
-        { 
-          role: 'assistant', 
-          content: 'This is a placeholder response. In a real implementation, this would connect to an AI service.' 
-        }
-      ]);
-    }, 1000);
-    
+  const handleSendMessage = async () => {
+    if (!input.trim() || !token) return;
+
+    const userMessage = { role: 'user', content: input };
+    setMessages((prev) => [...prev, userMessage]);
     setInput('');
+    setIsLoading(true);
+
+    try {
+      // The service expects a history of a specific format.
+      // We adapt the current message state to fit that format.
+      const historyForApi = messages.map(msg => ({
+        role: msg.role === 'assistant' ? 'model' : 'user',
+        parts: msg.content
+      }));
+
+      const response = await geminiService.chat(historyForApi, input, token);
+      
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: response.text },
+      ]);
+    } catch (error) {
+      console.error('AI Assistant Error:', error);
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -54,6 +70,14 @@ export function AIAssistant() {
             </div>
           </div>
         ))}
+        {isLoading && (
+          <div className="flex justify-start">
+             <div className="max-w-[80%] rounded-lg px-4 py-2 bg-white/10 text-white flex items-center">
+                <Loader className="animate-spin h-5 w-5 mr-3" />
+                Thinking...
+             </div>
+          </div>
+        )}
       </div>
       
       <div className="px-4 py-3 border-t border-white/10">
@@ -63,13 +87,15 @@ export function AIAssistant() {
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask something..."
             className="flex-1"
-            onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+            onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleSendMessage()}
+            disabled={isLoading}
           />
-          <Button onClick={handleSendMessage}>
+          <Button onClick={handleSendMessage} disabled={isLoading}>
             <Send className="h-4 w-4" />
           </Button>
         </div>
       </div>
     </div>
   );
-} 
+}
+ 

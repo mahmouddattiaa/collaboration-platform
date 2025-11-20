@@ -32,6 +32,7 @@ import { CreateRoom } from '@/components/room/CreateRoom';
 import { JoinRoom } from '@/components/room/JoinRoom';
 import { useAuth } from '@/hooks/useAuth';
 import { useRoom } from '@/hooks/useRoom';
+import { useProjects } from '@/hooks/useProjects';
 import { cn } from '@/lib/utils';
 
 export function Dashboard() {
@@ -43,12 +44,20 @@ export function Dashboard() {
   
   const { user, logout } = useAuth();
   const { rooms, isLoading, getUserRooms } = useRoom();
+  const { projects, isLoading: projectsLoading, getProjectsForUser } = useProjects();
   const navigate = useNavigate();
 
   // Load user's rooms when dashboard mounts
   useEffect(() => {
     getUserRooms();
   }, [getUserRooms]);
+
+  // Load projects when rooms are loaded
+  useEffect(() => {
+    if (rooms.length > 0) {
+      getProjectsForUser(rooms);
+    }
+  }, [rooms, getProjectsForUser]);
 
   // Calculate stats
   const stats = {
@@ -293,6 +302,7 @@ export function Dashboard() {
         )}
 
         {/* Rooms Grid */}
+        <h2 className="text-3xl font-bold text-white mb-6">Workspaces</h2>
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="relative">
@@ -332,7 +342,7 @@ export function Dashboard() {
           </div>
         ) : (
           <div className={cn(
-            "gap-6",
+            "gap-6 mb-12",
             viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "flex flex-col"
           )}>
             {filteredRooms.map((room) => (
@@ -427,6 +437,74 @@ export function Dashboard() {
                       Open
                       <ArrowRight className="w-4 h-4 ml-1" />
                     </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Projects Section */}
+        <h2 className="text-3xl font-bold text-white mb-6">Projects</h2>
+        {projectsLoading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="relative">
+              <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                <Briefcase className="w-6 h-6 text-blue-400 animate-pulse" />
+              </div>
+            </div>
+            <span className="mt-6 text-white/60 text-lg">Loading your projects...</span>
+          </div>
+        ) : projects.length === 0 ? (
+          <div className="text-center py-20">
+            <div className="relative inline-block mb-6">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full blur-2xl opacity-30 animate-pulse" />
+              <div className="relative w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                <FileText className="w-12 h-12 text-white" />
+              </div>
+            </div>
+            <h3 className="text-3xl font-bold text-white mb-3">No projects found.</h3>
+            <p className="text-white/60 text-lg mb-8 max-w-md mx-auto">
+              Create a project inside a workspace to get started.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {projects.map((project) => (
+              <div
+                key={project._id}
+                className="group relative bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden transition-all duration-300 hover:border-blue-500/50 hover:scale-105"
+              >
+                <div className="relative p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl blur opacity-50 transition-opacity duration-300 group-hover:opacity-100" />
+                      <div className="relative w-14 h-14 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                        <FileText className="w-7 h-7 text-white" />
+                      </div>
+                    </div>
+                    <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 px-3 py-1 text-xs">
+                      {project.status}
+                    </Badge>
+                  </div>
+                  <div className="mb-4">
+                    <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors duration-300 mb-2">
+                      {project.name}
+                    </h3>
+                    <p className="text-white/60 text-sm line-clamp-2">
+                      {project.description || 'No description available.'}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between pt-4 border-t border-white/10">
+                    <div className="flex items-center gap-2 text-xs text-white/50">
+                      <Clock className="w-4 h-4" />
+                      <span>Due: {project.dueDate ? new Date(project.dueDate).toLocaleDateString() : 'N/A'}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                        <div className={`w-3 h-3 rounded-full ${project.priority === 'high' ? 'bg-red-500' : project.priority === 'medium' ? 'bg-yellow-500' : 'bg-green-500'}`}></div>
+                        <span className="text-white/70">{project.priority}</span>
+                    </div>
                   </div>
                 </div>
               </div>

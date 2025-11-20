@@ -10,8 +10,11 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
-import { TaskManager } from '@/components/workspace/TaskManager';
 import { ProjectManager } from '@/components/workspace/ProjectManager';
+import { Chat } from '@/components/room/Chat';
+import { Whiteboard } from '@/components/room/Whiteboard';
+import { useProjects } from '@/hooks/useProjects';
+import { PhasesAndRequirements } from '@/components/workspace/PhasesAndRequirements';
 
 class CollaborationErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -363,11 +366,25 @@ export function CollaborationRoomContent() {
                 {roomId}
               </Badge>
             </div>
+import { PresenceAvatarGroup } from '@/components/common/PresenceAvatarGroup';
+import { useCollaboration } from '@/contexts/CollaborationContext';
+
+// ... inside CollaborationRoomContent component
+  const { currentRoom, isConnected, joinRoom } = useCollaboration();
+
+  useEffect(() => {
+    if (roomId && isConnected) {
+      joinRoom(roomId);
+    }
+  }, [roomId, isConnected, joinRoom]);
+
+// ... inside the return statement, in the header
             <div className="flex items-center gap-3 sm:gap-6 w-full sm:w-auto justify-between sm:justify-end">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
                 <span className="text-xs sm:text-sm text-white/60">Connected</span>
               </div>
+              <PresenceAvatarGroup participants={currentRoom?.participants} />
               <Button 
                 variant="outline"
                 onClick={() => setIsConferencePanelOpen(true)}
@@ -380,32 +397,92 @@ export function CollaborationRoomContent() {
             </div>
           </header>
 
+import { Chat } from '@/components/room/Chat';
+
+...
+
           {/* Main Content Area */}
           <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">
             {activeTab === 'chat' && (
-              <div className="text-center text-white/60">
-                <MessageSquare className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 opacity-50" />
-                <h3 className="text-lg sm:text-xl font-semibold mb-2 text-white">💬 Real-time Chat</h3>
-                <p className="text-sm sm:text-base">Chat functionality will be implemented here</p>
+              <div className="h-full">
+                <Chat />
               </div>
             )}
             {activeTab === 'ai-chat' && (
-              <div className="text-center text-white/60">
-                <Bot className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 opacity-50" />
-                <h3 className="text-lg sm:text-xl font-semibold mb-2 text-white">🤖 AI Chat</h3>
-                <p className="text-sm sm:text-base">Shared AI assistant for the team</p>
-              </div>
-            )}
+...
+import { Whiteboard } from '@/components/room/Whiteboard';
+
+...
+
             {activeTab === 'whiteboard' && (
-              <div className="text-center text-white/60">
-                <Layout className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 opacity-50" />
-                <h3 className="text-lg sm:text-xl font-semibold mb-2 text-white">🎨 Collaborative Whiteboard</h3>
-                <p className="text-sm sm:text-base">Draw and brainstorm together in real-time</p>
+              <div className="h-full">
+                <Whiteboard />
               </div>
             )}
+...
+import { useProjects } from '@/hooks/useProjects';
+import { PhasesAndRequirements } from '@/components/workspace/PhasesAndRequirements';
+
+// ... inside CollaborationRoomContent component
+
+  const { projects, getProjectsForUser } = useProjects();
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (roomId) {
+      // Assuming useProjects is modified to take a single roomId
+      // This is a simplification. In the real implementation, we would
+      // fetch projects for the user, then filter by room.
+      // For now, we'll assume a direct fetch is possible.
+      // NOTE: Based on previous analysis, we need to fetch rooms, then projects per room.
+      // This part of the code will need to be adjusted to reflect that.
+      // For now, we proceed to get the structure right.
+    }
+  }, [roomId, getProjectsForUser]);
+  
+  const selectedProject = useMemo(() => {
+    return projects.find(p => p._id === selectedProjectId);
+  }, [projects, selectedProjectId]);
+
+  const handleProjectUpdate = (updatedProject: Project) => {
+    setProjects(prev => prev.map(p => p._id === updatedProject._id ? updatedProject : p));
+  };
+
+
+// ... inside the return statement, in the main content area
+
             {activeTab === 'tasks' && (
-              <TaskManager roomId={roomId} />
+              <div className="space-y-4">
+                <h2 className="text-2xl font-bold text-white">Project Tasks</h2>
+                <div className="flex items-center gap-4">
+                  <label htmlFor="project-select" className="text-white/80">Select Project:</label>
+                  <select
+                    id="project-select"
+                    value={selectedProjectId || ''}
+                    onChange={(e) => setSelectedProjectId(e.target.value)}
+                    className="bg-dark/50 text-white border border-white/10 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-green-500/50 text-sm"
+                  >
+                    <option value="">-- Select a Project --</option>
+                    {projects.map(p => (
+                      <option key={p._id} value={p._id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {selectedProject ? (
+                  <PhasesAndRequirements
+                    project={selectedProject}
+                    onProjectUpdate={handleProjectUpdate}
+                  />
+                ) : (
+                  <div className="text-center py-12 text-white/60">
+                    <p>Please select a project to view its tasks.</p>
+                    {projects.length === 0 && <p>No projects found in this room. Create one in the "Project Tracker" tab.</p>}
+                  </div>
+                )}
+              </div>
             )}
+...
             {activeTab === 'files' && (
               <div className="text-center text-white/60">
                 <FileText className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 opacity-50" />

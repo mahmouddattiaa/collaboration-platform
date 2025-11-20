@@ -1,3 +1,4 @@
+/*
 // @ts-nocheck
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { CheckSquare, Square, Trash2, Plus, Calendar, User, AlertCircle, Filter, Clock } from 'lucide-react';
@@ -171,14 +172,14 @@ export function TaskManager({ roomId }: TaskManagerProps) {
 
   return (
     <div className="max-w-6xl mx-auto">
-      {/* Header with Statistics */}
+      
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-4">
           <CheckSquare className="w-8 h-8 text-theme-primary" />
           <h2 className="text-2xl font-bold text-white">Task Management</h2>
         </div>
         
-        {/* Stats Cards */}
+        
         <div className="grid grid-cols-4 gap-4 mb-6">
           <div className="bg-dark-secondary/50 backdrop-blur-xl border border-white/10 rounded-lg p-4">
             <div className="text-white/60 text-sm mb-1">Total Tasks</div>
@@ -199,12 +200,12 @@ export function TaskManager({ roomId }: TaskManagerProps) {
         </div>
       </div>
 
-      {/* Create New Task Form */}
+      
       <div className="bg-dark-secondary/50 backdrop-blur-xl border border-white/10 rounded-lg p-6 mb-6">
         <h3 className="text-lg font-semibold text-white mb-4">Create New Task</h3>
         
         <div className="space-y-4">
-          {/* Task Title */}
+          
           <div>
             <Input
               value={newTaskTitle}
@@ -215,7 +216,7 @@ export function TaskManager({ roomId }: TaskManagerProps) {
             />
           </div>
 
-          {/* Task Description */}
+          
           <div>
             <textarea
               value={newTaskDescription}
@@ -225,9 +226,9 @@ export function TaskManager({ roomId }: TaskManagerProps) {
             />
           </div>
 
-          {/* Task Metadata */}
+          
           <div className="grid grid-cols-3 gap-4">
-            {/* Priority */}
+            
             <div>
               <label className="text-sm text-white/60 mb-2 block">Priority</label>
               <select
@@ -241,7 +242,7 @@ export function TaskManager({ roomId }: TaskManagerProps) {
               </select>
             </div>
 
-            {/* Assignee */}
+            
             <div>
               <label className="text-sm text-white/60 mb-2 block">Assign to</label>
               <Input
@@ -252,7 +253,7 @@ export function TaskManager({ roomId }: TaskManagerProps) {
               />
             </div>
 
-            {/* Due Date */}
+            
             <div>
               <label className="text-sm text-white/60 mb-2 block">Due Date</label>
               <Input
@@ -264,7 +265,7 @@ export function TaskManager({ roomId }: TaskManagerProps) {
             </div>
           </div>
 
-          {/* Add Button */}
+          
           <Button
             onClick={handleAddTask}
             disabled={!newTaskTitle.trim()}
@@ -276,12 +277,12 @@ export function TaskManager({ roomId }: TaskManagerProps) {
         </div>
       </div>
 
-      {/* Filters and Sorting */}
+      
       <div className="bg-dark-secondary/50 backdrop-blur-xl border border-white/10 rounded-lg p-4 mb-6">
         <div className="flex items-center gap-4">
           <Filter className="w-5 h-5 text-white/60" />
           
-          {/* Status Filter */}
+          
           <div className="flex gap-2">
             <button
               onClick={() => setFilterStatus('all')}
@@ -320,7 +321,7 @@ export function TaskManager({ roomId }: TaskManagerProps) {
 
           <div className="w-px h-6 bg-white/10" />
 
-          {/* Priority Filter */}
+          
           <select
             value={filterPriority}
             onChange={(e) => setFilterPriority(e.target.value as any)}
@@ -334,7 +335,7 @@ export function TaskManager({ roomId }: TaskManagerProps) {
 
           <div className="w-px h-6 bg-white/10" />
 
-          {/* Sort */}
+          
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
@@ -347,7 +348,7 @@ export function TaskManager({ roomId }: TaskManagerProps) {
         </div>
       </div>
 
-      {/* Tasks List */}
+      
       <div className="space-y-3">
         {filteredAndSortedTasks.length === 0 ? (
           <div className="text-center py-12">
@@ -370,7 +371,7 @@ export function TaskManager({ roomId }: TaskManagerProps) {
               )}
             >
               <div className="flex items-start gap-4">
-                {/* Checkbox */}
+                
                 <button
                   onClick={() => handleToggleTask(task.id)}
                   className="flex-shrink-0 mt-1"
@@ -382,7 +383,7 @@ export function TaskManager({ roomId }: TaskManagerProps) {
                   )}
                 </button>
 
-                {/* Task Content */}
+                
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-4 mb-2">
                     <h4
@@ -396,7 +397,7 @@ export function TaskManager({ roomId }: TaskManagerProps) {
                       {task.title}
                     </h4>
 
-                    {/* Priority Badge */}
+                    
                     <span
                       className={cn(
                         'px-2 py-1 rounded text-xs font-medium border flex-shrink-0',
@@ -407,16 +408,16 @@ export function TaskManager({ roomId }: TaskManagerProps) {
                     </span>
                   </div>
 
-                  {/* Description */}
+                  
                   {task.description && (
                     <p className="text-white/60 text-sm mb-3 whitespace-pre-wrap">
                       {task.description}
                     </p>
                   )}
 
-                  {/* Metadata */}
+                  
                   <div className="flex items-center gap-4 text-sm text-white/40">
-                    {/* Assignee */}
+                    
                     {task.assignee && (
                       <div className="flex items-center gap-1.5">
                         <User className="w-4 h-4" />
@@ -424,7 +425,7 @@ export function TaskManager({ roomId }: TaskManagerProps) {
                       </div>
                     )}
 
-                    {/* Due Date */}
+                    
                     {task.dueDate && (
                       <div
                         className={cn(
@@ -444,7 +445,7 @@ export function TaskManager({ roomId }: TaskManagerProps) {
                       </div>
                     )}
 
-                    {/* Created Date */}
+                    
                     <div className="flex items-center gap-1.5">
                       <Clock className="w-4 h-4" />
                       <span>
@@ -454,7 +455,7 @@ export function TaskManager({ roomId }: TaskManagerProps) {
                   </div>
                 </div>
 
-                {/* Delete Button */}
+                
                 <Button
                   variant="ghost"
                   size="sm"
@@ -471,3 +472,4 @@ export function TaskManager({ roomId }: TaskManagerProps) {
     </div>
   );
 }
+*/
