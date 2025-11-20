@@ -15,6 +15,8 @@ import { Chat } from '@/components/room/Chat';
 import { Whiteboard } from '@/components/room/Whiteboard';
 import { useProjects } from '@/hooks/useProjects';
 import { PhasesAndRequirements } from '@/components/workspace/PhasesAndRequirements';
+import { PresenceAvatarGroup } from '@/components/common/PresenceAvatarGroup';
+import { useCollaboration } from '@/contexts/CollaborationContext';
 
 class CollaborationErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -187,11 +189,39 @@ export function CollaborationRoomContent() {
     };
   }, [brainDumpList, brainDumpStarred]);
 
+  // Collaboration context
+  const { currentRoom, isConnected, joinRoom } = useCollaboration();
+
+  // Projects management
+  const { projects, getProjectsForUser } = useProjects();
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (roomId && isConnected) {
+      joinRoom(roomId);
+    }
+  }, [roomId, isConnected, joinRoom]);
+
+  useEffect(() => {
+    if (roomId) {
+      getProjectsForUser();
+    }
+  }, [roomId, getProjectsForUser]);
+  
+  const selectedProject = useMemo(() => {
+    return projects.find(p => p._id === selectedProjectId);
+  }, [projects, selectedProjectId]);
+
+  const handleProjectUpdate = (updatedProject: any) => {
+    // Update project logic would go here
+    console.log('Project updated:', updatedProject);
+  };
+
   // Memoize room object to prevent recreating on every render
   const room = useMemo(() => ({ 
-    name: `Room ${roomId}`, 
-    participants: [] 
-  }), [roomId]);
+    name: currentRoom?.name || `Room ${roomId}`, 
+    participants: currentRoom?.participants || [] 
+  }), [roomId, currentRoom]);
 
   if (!roomId) {
     return (
@@ -366,19 +396,6 @@ export function CollaborationRoomContent() {
                 {roomId}
               </Badge>
             </div>
-import { PresenceAvatarGroup } from '@/components/common/PresenceAvatarGroup';
-import { useCollaboration } from '@/contexts/CollaborationContext';
-
-// ... inside CollaborationRoomContent component
-  const { currentRoom, isConnected, joinRoom } = useCollaboration();
-
-  useEffect(() => {
-    if (roomId && isConnected) {
-      joinRoom(roomId);
-    }
-  }, [roomId, isConnected, joinRoom]);
-
-// ... inside the return statement, in the header
             <div className="flex items-center gap-3 sm:gap-6 w-full sm:w-auto justify-between sm:justify-end">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
@@ -397,10 +414,6 @@ import { useCollaboration } from '@/contexts/CollaborationContext';
             </div>
           </header>
 
-import { Chat } from '@/components/room/Chat';
-
-...
-
           {/* Main Content Area */}
           <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">
             {activeTab === 'chat' && (
@@ -409,48 +422,17 @@ import { Chat } from '@/components/room/Chat';
               </div>
             )}
             {activeTab === 'ai-chat' && (
-...
-import { Whiteboard } from '@/components/room/Whiteboard';
-
-...
-
+              <div className="text-center text-white/60">
+                <Bot className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 opacity-50" />
+                <h3 className="text-lg sm:text-xl font-semibold mb-2 text-white">🤖 AI Chat Assistant</h3>
+                <p className="text-sm sm:text-base">Chat with AI to help with your collaboration</p>
+              </div>
+            )}
             {activeTab === 'whiteboard' && (
               <div className="h-full">
                 <Whiteboard />
               </div>
             )}
-...
-import { useProjects } from '@/hooks/useProjects';
-import { PhasesAndRequirements } from '@/components/workspace/PhasesAndRequirements';
-
-// ... inside CollaborationRoomContent component
-
-  const { projects, getProjectsForUser } = useProjects();
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (roomId) {
-      // Assuming useProjects is modified to take a single roomId
-      // This is a simplification. In the real implementation, we would
-      // fetch projects for the user, then filter by room.
-      // For now, we'll assume a direct fetch is possible.
-      // NOTE: Based on previous analysis, we need to fetch rooms, then projects per room.
-      // This part of the code will need to be adjusted to reflect that.
-      // For now, we proceed to get the structure right.
-    }
-  }, [roomId, getProjectsForUser]);
-  
-  const selectedProject = useMemo(() => {
-    return projects.find(p => p._id === selectedProjectId);
-  }, [projects, selectedProjectId]);
-
-  const handleProjectUpdate = (updatedProject: Project) => {
-    setProjects(prev => prev.map(p => p._id === updatedProject._id ? updatedProject : p));
-  };
-
-
-// ... inside the return statement, in the main content area
-
             {activeTab === 'tasks' && (
               <div className="space-y-4">
                 <h2 className="text-2xl font-bold text-white">Project Tasks</h2>
@@ -482,7 +464,6 @@ import { PhasesAndRequirements } from '@/components/workspace/PhasesAndRequireme
                 )}
               </div>
             )}
-...
             {activeTab === 'files' && (
               <div className="text-center text-white/60">
                 <FileText className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 opacity-50" />

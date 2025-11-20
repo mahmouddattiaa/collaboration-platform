@@ -1,8 +1,13 @@
 import apiClient from './apiClient';
-import { Message } from '@/contexts/CollaborationContext'; // Assuming Message type can be reused
+import { ApiResponse } from '@/types/api';
+
+interface GeminiHistoryItem {
+  role: 'user' | 'assistant' | 'model';
+  parts: string;
+}
 
 interface GeminiChatRequest {
-  history: { role: 'user' | 'assistant' | 'model'; parts: string }[];
+  history: GeminiHistoryItem[];
   message: string;
 }
 
@@ -12,22 +17,25 @@ interface GeminiChatResponse {
 
 class GeminiService {
   async chat(
-    history: Message[],
+    history: GeminiHistoryItem[],
     message: string,
     token: string
   ): Promise<GeminiChatResponse> {
 
-    const formattedHistory = history.map(msg => ({
-      role: msg.role === 'assistant' ? 'model' : 'user',
-      parts: msg.content,
-    }));
-
     const response = await apiClient.post<GeminiChatResponse>(
       '/api/gemini/chat',
-      { history: formattedHistory, message },
+      { history, message },
       token
     );
-    return response as GeminiChatResponse;
+    
+    // apiClient.post returns ApiResponse<GeminiChatResponse>
+    // Extract the data or return the response itself if it's already in the right format
+    if (response.data) {
+      return response.data;
+    }
+    
+    // Fallback if the API returns the data directly
+    return response as unknown as GeminiChatResponse;
   }
 }
 

@@ -5,9 +5,14 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
 import { geminiService } from '@/services/geminiService';
 
+interface SimpleMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export function AIAssistant() {
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState([
+  const [messages, setMessages] = useState<SimpleMessage[]>([
     { role: 'assistant', content: 'Hello! How can I help with your project today?' }
   ]);
   const [isLoading, setIsLoading] = useState(false);
@@ -16,7 +21,7 @@ export function AIAssistant() {
   const handleSendMessage = async () => {
     if (!input.trim() || !token) return;
 
-    const userMessage = { role: 'user', content: input };
+    const userMessage: SimpleMessage = { role: 'user', content: input };
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
@@ -25,7 +30,7 @@ export function AIAssistant() {
       // The service expects a history of a specific format.
       // We adapt the current message state to fit that format.
       const historyForApi = messages.map(msg => ({
-        role: msg.role === 'assistant' ? 'model' : 'user',
+        role: (msg.role === 'assistant' ? 'model' : 'user') as 'user' | 'assistant' | 'model',
         parts: msg.content
       }));
 
