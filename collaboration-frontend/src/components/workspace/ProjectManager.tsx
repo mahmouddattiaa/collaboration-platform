@@ -766,9 +766,10 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
       switch (sortBy) {
         case 'name':
           return a.name.localeCompare(b.name);
-        case 'priority':
+        case 'priority': {
           const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
           return priorityOrder[a.priority] - priorityOrder[b.priority];
+        }
         case 'progress':
           return b.progress - a.progress;
         case 'date':
