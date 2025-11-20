@@ -26,27 +26,11 @@ export interface Message {
   createdAt: Date;
 }
 
-export interface WhiteboardElement {
-  id: string;
-  type: 'pencil' | 'line' | 'rectangle' | 'circle' | 'text';
-  points?: { x: number; y: number }[];
-  x?: number;
-  y?: number;
-  width?: number;
-  height?: number;
-  text?: string;
-  color: string;
-  strokeWidth: number;
-}
-
 export interface Room {
   id: string;
   name: string;
   participants: Participant[];
   messages: Message[];
-  whiteboard: {
-    elements: WhiteboardElement[];
-  };
   createdAt: Date;
 }
 
@@ -59,9 +43,6 @@ interface CollaborationContextType {
   joinRoom: (roomId: string) => void;
   leaveRoom: (roomId: string) => void;
   sendMessage: (content: string) => void;
-  updateWhiteboard: (elements: WhiteboardElement[]) => void;
-  clearWhiteboard: () => void;
-  syncWhiteboard: () => void;
 }
 
 const CollaborationContext = createContext<CollaborationContextType>({
@@ -72,10 +53,7 @@ const CollaborationContext = createContext<CollaborationContextType>({
   disconnect: () => {},
   joinRoom: () => {},
   leaveRoom: () => {},
-  sendMessage: () => {},
-  updateWhiteboard: () => {},
-  clearWhiteboard: () => {},
-  syncWhiteboard: () => {}
+  sendMessage: () => {}
 });
 
 // Provider ------------------------------------------------
@@ -122,19 +100,6 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
 
     newSocket.on('new-message', ({ room }) => {
       setCurrentRoom(room);
-    });
-
-    newSocket.on('whiteboard:update', (elements: WhiteboardElement[]) => {
-      setCurrentRoom((prev) => {
-        if (!prev) return null;
-        return {
-        ...prev,
-          whiteboard: {
-            ...prev.whiteboard,
-            elements
-          }
-        };
-      });
     });
 
     newSocket.on('error', ({ message }) => {
@@ -193,31 +158,6 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
     });
   }, [socket, currentRoom, user]);
 
-  const updateWhiteboard = useCallback((elements: WhiteboardElement[]) => {
-    if (!socket || !currentRoom) return;
-
-    socket.emit('whiteboard:draw', {
-      roomId: currentRoom.id,
-      elements
-    });
-  }, [socket, currentRoom]);
-
-  const clearWhiteboard = useCallback(() => {
-    if (!socket || !currentRoom) return;
-
-    socket.emit('whiteboard:clear', {
-      roomId: currentRoom.id
-    });
-  }, [socket, currentRoom]);
-
-  const syncWhiteboard = useCallback(() => {
-    if (!socket || !currentRoom) return;
-
-    socket.emit('whiteboard:sync', {
-      roomId: currentRoom.id
-    });
-  }, [socket, currentRoom]);
-
   useEffect(() => {
     if (user) {
       connect();
@@ -234,10 +174,7 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
     disconnect,
     joinRoom,
     leaveRoom,
-    sendMessage,
-    updateWhiteboard,
-    clearWhiteboard,
-    syncWhiteboard
+    sendMessage
   };
 
   return (

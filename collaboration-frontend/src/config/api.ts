@@ -72,7 +72,6 @@ export const COLLAB_ENDPOINTS = {
 
   // Room Features
   SEND_MESSAGE: '/collab/room/message',
-  UPDATE_WHITEBOARD: '/collab/room/whiteboard',
   ADD_TASK: '/collab/room/task',
   UPDATE_TASK: '/collab/room/task',
   DELETE_TASK: '/collab/room/task',
@@ -103,10 +102,6 @@ export const SOCKET_EVENTS = {
   MESSAGE_RECEIVED: 'message_received',
   TYPING_START: 'typing_start',
   TYPING_END: 'typing_end',
-
-  // Whiteboard
-  WHITEBOARD_UPDATE: 'whiteboard_update',
-  WHITEBOARD_SYNC: 'whiteboard_sync',
 
   // Tasks
   TASK_CREATED: 'task_created',

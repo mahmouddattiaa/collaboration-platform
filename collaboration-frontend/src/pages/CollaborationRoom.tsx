@@ -12,7 +12,6 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { ProjectManager } from '@/components/workspace/ProjectManager';
 import { Chat } from '@/components/room/Chat';
-import { Whiteboard } from '@/components/room/Whiteboard';
 import { useProjects } from '@/hooks/useProjects';
 import { PhasesAndRequirements } from '@/components/workspace/PhasesAndRequirements';
 import { PresenceAvatarGroup } from '@/components/common/PresenceAvatarGroup';
@@ -320,12 +319,6 @@ export function CollaborationRoomContent() {
 
             <SidebarSection title="Workspace" defaultExpanded={true} className="mt-4">
               <SidebarItem
-                icon={<Layout className="w-5 h-5" />}
-                label="Whiteboard"
-                isActive={activeTab === 'whiteboard'}
-                onClick={() => setActiveTab('whiteboard')}
-              />
-              <SidebarItem
                 icon={<CheckSquare className="w-5 h-5" />}
                 label="Tasks"
                 isActive={activeTab === 'tasks'}
@@ -426,11 +419,6 @@ export function CollaborationRoomContent() {
                 <Bot className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 opacity-50" />
                 <h3 className="text-lg sm:text-xl font-semibold mb-2 text-white">🤖 AI Chat Assistant</h3>
                 <p className="text-sm sm:text-base">Chat with AI to help with your collaboration</p>
-              </div>
-            )}
-            {activeTab === 'whiteboard' && (
-              <div className="h-full">
-                <Whiteboard />
               </div>
             )}
             {activeTab === 'tasks' && (
@@ -571,14 +559,6 @@ export function CollaborationRoomContent() {
                     >
                       <MessageSquare className="w-8 h-8 mx-auto mb-2 text-purple-400 group-hover:scale-110 transition-transform" />
                       <p className="text-sm text-white/80 text-center">Chat</p>
-                    </button>
-                    
-                    <button
-                      onClick={() => setActiveTab('whiteboard')}
-                      className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-pink-500/50 rounded-xl p-4 transition-all duration-300 hover:scale-105 group"
-                    >
-                      <Layout className="w-8 h-8 mx-auto mb-2 text-pink-400 group-hover:scale-110 transition-transform" />
-                      <p className="text-sm text-white/80 text-center">Whiteboard</p>
                     </button>
                     
                     <button

@@ -74,10 +74,6 @@ const roomSchema = new mongoose.Schema({
         }
     },
     features: {
-        whiteboard: {
-            type: Boolean,
-            default: true
-        },
         taskManagement: {
             type: Boolean,
             default: true
