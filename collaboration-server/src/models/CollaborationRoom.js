@@ -43,8 +43,9 @@ const roomSchema = new mongoose.Schema({
     roomCode: {
         type: String,
         unique: true,
-        uppercase: true,
-        length: 6
+        required: true,
+        minlength: 6,
+        maxlength: 6
     },
     invitedPeople: {
         type: [String],

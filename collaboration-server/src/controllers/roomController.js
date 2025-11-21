@@ -1,13 +1,14 @@
 const Room = require('../models/CollaborationRoom');
 const { BadRequestError, NotFoundError } = require('../utils/errors');
 
-// Helper function to generate unique room code
+// Helper function to generate unique 6-digit room code
 const generateRoomCode = async () => {
     let code;
     let isUnique = false;
 
     while (!isUnique) {
-        code = Math.random().toString(36).substring(2, 8).toUpperCase();
+        // Generate 6-digit code (100000 to 999999)
+        code = Math.floor(100000 + Math.random() * 900000).toString();
 
         const existingRoom = await Room.findOne({ roomCode: code });
         if (!existingRoom) {
@@ -63,6 +64,21 @@ exports.joinRoom = async(req,res, next) => {
             throw new NotFoundError('Room not found');
         }
 
+        // Check if user is already a member
+        const isAlreadyMember = room.members.some(
+            member => member.userId.toString() === req.user._id.toString()
+        );
+
+        if (isAlreadyMember) {
+            // User is already a member, just return the room
+            return res.status(200).json({
+                success: true,
+                message: 'Already a member of this room',
+                room: room
+            });
+        }
+
+        // Add user as a new member
         await room.addMember(req.user._id, 'participant');
 
         res.status(200).json({

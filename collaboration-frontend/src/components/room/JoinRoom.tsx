@@ -71,16 +71,23 @@ export function JoinRoom({ onClose }:{onClose?: () => void}){
                             <Home className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                             <Input
                                 id="roomCode"
+                                type="text"
                                 value={roomCode}
-                                onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-                                placeholder="Enter workspace code (e.g., ABC123)"
+                                onChange={(e) => {
+                                    const value = e.target.value.replace(/\D/g, '');
+                                    if (value.length <= 6) {
+                                        setRoomCode(value);
+                                    }
+                                }}
+                                placeholder="Enter workspace code (e.g., 123456)"
                                 required
-                                className="bg-dark border border-white/20 rounded-lg pl-10 pr-4 py-3 text-white placeholder:text-gray-500 focus:border-theme-primary focus:ring-1 focus:ring-theme-primary"
+                                className="bg-dark border border-white/20 rounded-lg pl-10 pr-4 py-3 text-white placeholder:text-gray-500 focus:border-theme-primary focus:ring-1 focus:ring-theme-primary text-2xl tracking-widest text-center"
                                 maxLength={6}
+                                pattern="[0-9]{6}"
                             />
                         </div>
                         <p className="text-xs text-theme-gray-light mt-1">
-                            Ask the workspace owner for the 6-character code
+                            Ask the workspace owner for the 6-digit code
                         </p>
                     </div>
 

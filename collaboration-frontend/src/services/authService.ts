@@ -28,8 +28,9 @@ class AuthService {
 
   // Get current user profile
   async getProfile(token: string): Promise<User> {
-    const response = await apiClient.get<User>('/api/auth/me', token);
-    return response.data as User;
+    const response = await apiClient.get<any>('/api/auth/me', token);
+    console.log('📥 Profile response:', response);
+    return response.user as User;
   }
 
   // Token management

@@ -80,9 +80,10 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     console.log('🔍 CollaborationContext useEffect - user:', user ? 'logged in' : 'not logged in');
+    console.log('🔍 User object:', user);
     
     if (user) {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('authToken');
       console.log('🔍 Token exists:', !!token);
       console.log('🔍 Socket URL:', SOCKET_URL);
       
