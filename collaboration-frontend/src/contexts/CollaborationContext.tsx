@@ -54,13 +54,22 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
   const { user } = useAuth();
 
   const joinRoom = useCallback((roomId: string) => {
-    if (!socket) return;
+    if (!socket) {
+      console.error('❌ Cannot join room: socket not initialized');
+      return;
+    }
+    if (!socket.connected) {
+      console.error('❌ Cannot join room: socket not connected');
+      return;
+    }
     
     // Leave current room if exists
     if (currentRoom && currentRoom.id !== roomId) {
+      console.log(`👋 Leaving previous room: ${currentRoom.id}`);
       socket.emit('leave-room', currentRoom.id);
     }
     
+    console.log(`🚪 Emitting join-room event for: ${roomId}`);
     socket.emit('join-room', roomId);
     setCurrentRoom({
       id: roomId,
@@ -70,15 +79,19 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
       createdAt: new Date()
     });
     setMessages([]);
-    console.log(`🚪 Joined room: ${roomId}`);
+    console.log(`✅ Room state updated: ${roomId}`);
   }, [socket, currentRoom]);
 
   const leaveRoom = useCallback((roomId: string) => {
-    if (!socket) return;
+    if (!socket || !socket.connected) {
+      console.error('❌ Cannot leave room: socket not available');
+      return;
+    }
+    console.log(`👋 Emitting leave-room event for: ${roomId}`);
     socket.emit('leave-room', roomId);
     setCurrentRoom(null);
     setMessages([]);
-    console.log(`👋 Left room: ${roomId}`);
+    console.log(`✅ Left room: ${roomId}`);
   }, [socket]);
 
   const sendMessage = useCallback((roomId: string, message: string) => {
@@ -132,6 +145,13 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
       newSocket.on('user-left-notification', (notification: { title: string, message: string }) => {
         toast.info(notification.title, {
           description: notification.message,
+        });
+      });
+
+      newSocket.on('room-joined-confirmation', (data: { roomId: string, message: string }) => {
+        console.log('🎉 Room joined confirmation received:', data);
+        toast.success("Room Joined", {
+          description: data.message,
         });
       });
 

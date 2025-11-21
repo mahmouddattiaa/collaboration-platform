@@ -3,9 +3,12 @@ module.exports = (io, socket) => {
   socket.currentRooms = new Set();
 
   socket.on('join-room', (roomId) => {
+    console.log(`🔔 Received join-room event from ${socket.user.name} for room ${roomId}`);
+    
     // Leave previous rooms when joining a new one
     socket.currentRooms.forEach(oldRoomId => {
       socket.leave(oldRoomId);
+      console.log(`👋 User ${socket.user.name} left previous room ${oldRoomId}`);
       socket.to(oldRoomId).emit('user-left-notification', {
         title: 'User Left',
         message: `${socket.user.name} has left the room.`,
@@ -16,11 +19,19 @@ module.exports = (io, socket) => {
     // Join the new room
     socket.join(roomId);
     socket.currentRooms.add(roomId);
-    console.log(`✅ User ${socket.user.name} joined room ${roomId}`);
+    console.log(`✅ User ${socket.user.name} successfully joined room ${roomId}`);
+    console.log(`📊 Active rooms for ${socket.user.name}:`, Array.from(socket.currentRooms));
     
+    // Notify other users in the room
     socket.to(roomId).emit('user-joined-notification', {
       title: 'New User Joined',
       message: `${socket.user.name} has joined the room.`,
+    });
+    
+    // Send confirmation back to the user who joined
+    socket.emit('room-joined-confirmation', {
+      roomId,
+      message: `Successfully joined room ${roomId}`,
     });
   });
 

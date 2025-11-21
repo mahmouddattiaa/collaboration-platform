@@ -230,16 +230,19 @@ export function CollaborationRoomContent() {
 
   useEffect(() => {
     if (roomId && isConnected) {
+      console.log(`🚪 Joining room ${roomId}`);
       joinRoom(roomId);
     }
     
     // Cleanup: leave room when component unmounts or roomId changes
     return () => {
-      if (roomId) {
+      if (roomId && isConnected) {
+        console.log(`👋 Leaving room ${roomId} (cleanup)`);
         leaveRoom(roomId);
       }
     };
-  }, [roomId, isConnected, joinRoom, leaveRoom]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomId, isConnected]);
   
   const selectedProject = useMemo(() => {
     return projects.find(p => p._id === selectedProjectId);
