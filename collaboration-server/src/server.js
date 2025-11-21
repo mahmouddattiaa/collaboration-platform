@@ -160,7 +160,7 @@ app.get("/api/health", (req, res) => {
 });
 
 //routes
-app.use("/api/auth", authLimiter, authRoutes);
+app.use("/api/auth", authRoutes);
 app.use("/api/gemini", geminiRoutes);
 app.use("/api/rooms", roomRoutes);
 app.use("/api/projects", projectRoutes);

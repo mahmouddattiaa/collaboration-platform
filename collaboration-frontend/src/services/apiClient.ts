@@ -1,4 +1,4 @@
-import { ApiResponse, HttpMethod, RequestOptions } from '@/types/api';
+import { ApiResponse, RequestOptions } from '@/types/api';
 
 class ApiClient {
   private baseURL: string;
