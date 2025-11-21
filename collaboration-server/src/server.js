@@ -15,7 +15,7 @@ const geminiRoutes = require("./routes/geminiRoutes");
 const projectRoutes = require("./routes/projectRoutes");
 const socketAuth = require("./middleware/socketAuth");
 const errorHandler = require("./middleware/errorHandler");
-const initializeSocket = require('./socket');
+const initializeSocket = require("./socket");
 
 require("./models/User");
 
@@ -23,7 +23,11 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:3000", "http://localhost:5173", "https://collaboration-frontend-seven.vercel.app"],
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:5173",
+      "https://collaboration-frontend-seven.vercel.app",
+    ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   },
@@ -48,7 +52,10 @@ app.use(
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 500, // Limit each IP to 500 requests per windowMs (increased for development)
-  message: { success: false, message: "Too many requests from this IP, please try again later." },
+  message: {
+    success: false,
+    message: "Too many requests from this IP, please try again later.",
+  },
   standardHeaders: true, // Return rate limit info in headers
   legacyHeaders: false,
 });
