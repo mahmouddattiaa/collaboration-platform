@@ -48,7 +48,17 @@ class ApiClient {
       }
 
       const response = await fetch(url, config);
-      const data = await response.json();
+      
+      // Try to parse as JSON, fallback to text for non-JSON responses
+      let data;
+      const contentType = response.headers.get('content-type');
+      
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        data = { success: false, message: text };
+      }
 
       if (!response.ok) {
         throw new Error(data.message || `HTTP error! status: ${response.status}`);
