@@ -1,6 +1,5 @@
-// @ts-nocheck
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { MessageSquare, FileText, CheckSquare, Folder, BookOpen, Users, Settings, ChevronLeft, ChevronRight, Video, VideoOff, Timer, Search, Sparkles, Bot, BarChart3, Shield, Brain, Database, Layout, Plus, Calendar, Target, BarChart2, ListTodo, Trash2, Send, Tag, Filter, Star, Clock, Lightbulb, Zap, TrendingUp, Archive, Edit2, Copy, CheckCircle, Activity } from 'lucide-react';
+import { MessageSquare, FileText, CheckSquare, BookOpen, Users, ChevronLeft, ChevronRight, Video, Search, Sparkles, Bot, Brain, Target, BarChart2, Trash2, Send, Filter, Star, Clock, Lightbulb, Zap, TrendingUp, CheckCircle, Activity } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 
 import { SidebarItem } from '@/components/common/SidebarItem';
@@ -9,13 +8,21 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/hooks/useAuth';
 import { ProjectManager } from '@/components/workspace/ProjectManager';
 import { Chat } from '@/components/room/Chat';
 import { useProjects } from '@/hooks/useProjects';
 import { PhasesAndRequirements } from '@/components/workspace/PhasesAndRequirements';
 import { PresenceAvatarGroup } from '@/components/common/PresenceAvatarGroup';
 import { useCollaboration } from '@/contexts/CollaborationContext';
+
+interface BrainDumpIdea {
+  id: number;
+  text: string;
+  timestamp: string;
+  createdAt: string;
+  category: 'idea' | 'todo' | 'insight' | 'question';
+  starred: boolean;
+}
 
 class CollaborationErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -61,7 +68,7 @@ export function CollaborationRoomContent() {
 
   // Brain Dump State Management
   const [brainDumpIdea, setBrainDumpIdea] = useState('');
-  const [brainDumpList, setBrainDumpList] = useState([]);
+  const [brainDumpList, setBrainDumpList] = useState<BrainDumpIdea[]>([]);
   const [brainDumpCategory, setBrainDumpCategory] = useState('idea');
   const [brainDumpSearch, setBrainDumpSearch] = useState('');
   const [brainDumpFilter, setBrainDumpFilter] = useState('all');
@@ -98,12 +105,12 @@ export function CollaborationRoomContent() {
   // Brain Dump Functions - Memoized to prevent recreation on every render
   const handleAddBrainDump = useCallback(() => {
     if (brainDumpIdea.trim()) {
-      const newIdea = {
+      const newIdea: BrainDumpIdea = {
         id: Date.now(),
         text: brainDumpIdea,
         timestamp: new Date().toISOString(),
         createdAt: new Date().toLocaleString(),
-        category: brainDumpCategory,
+        category: brainDumpCategory as 'idea' | 'todo' | 'insight' | 'question',
         starred: false
       };
       setBrainDumpList(prev => [newIdea, ...prev]);
@@ -112,7 +119,7 @@ export function CollaborationRoomContent() {
     }
   }, [brainDumpIdea, brainDumpCategory]);
 
-  const handleDeleteBrainDump = useCallback((id) => {
+  const handleDeleteBrainDump = useCallback((id: number) => {
     setBrainDumpList(prev => {
       const newList = prev.filter(idea => idea.id !== id);
       // If list becomes empty, clear localStorage
@@ -128,7 +135,7 @@ export function CollaborationRoomContent() {
     });
   }, [roomId]);
 
-  const handleToggleStar = useCallback((id) => {
+  const handleToggleStar = useCallback((id: number) => {
     setBrainDumpStarred(prev => {
       const newSet = new Set(prev);
       if (newSet.has(id)) {
@@ -140,13 +147,13 @@ export function CollaborationRoomContent() {
     });
   }, []);
 
-  const handleConvertToTask = useCallback((idea) => {
+  const handleConvertToTask = useCallback(() => {
     // Switch to tasks tab and prepare task
     setActiveTab('tasks');
     // You can enhance this later to pre-fill task data
   }, []);
 
-  const handleKeyPress = useCallback((e) => {
+  const handleKeyPress = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && e.ctrlKey) {
       handleAddBrainDump();
     }
@@ -192,7 +199,7 @@ export function CollaborationRoomContent() {
   const { currentRoom, isConnected, joinRoom } = useCollaboration();
 
   // Projects management
-  const { projects, getProjectsForUser } = useProjects();
+  const { projects } = useProjects();
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -200,18 +207,12 @@ export function CollaborationRoomContent() {
       joinRoom(roomId);
     }
   }, [roomId, isConnected, joinRoom]);
-
-  useEffect(() => {
-    if (roomId) {
-      getProjectsForUser();
-    }
-  }, [roomId, getProjectsForUser]);
   
   const selectedProject = useMemo(() => {
     return projects.find(p => p._id === selectedProjectId);
   }, [projects, selectedProjectId]);
 
-  const handleProjectUpdate = (updatedProject: any) => {
+  const handleProjectUpdate = (updatedProject: unknown) => {
     // Update project logic would go here
     console.log('Project updated:', updatedProject);
   };
@@ -219,7 +220,7 @@ export function CollaborationRoomContent() {
   // Memoize room object to prevent recreating on every render
   const room = useMemo(() => ({ 
     name: currentRoom?.name || `Room ${roomId}`, 
-    participants: currentRoom?.participants || [] 
+    participants: [] 
   }), [roomId, currentRoom]);
 
   if (!roomId) {
@@ -394,7 +395,7 @@ export function CollaborationRoomContent() {
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
                 <span className="text-xs sm:text-sm text-white/60">Connected</span>
               </div>
-              <PresenceAvatarGroup participants={currentRoom?.participants} />
+              <PresenceAvatarGroup participants={[]} />
               <Button 
                 variant="outline"
                 onClick={() => setIsConferencePanelOpen(true)}
@@ -871,7 +872,7 @@ export function CollaborationRoomContent() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleConvertToTask(idea)}
+                                onClick={handleConvertToTask}
                                 className="text-xs text-purple-400 hover:text-purple-300 hover:bg-purple-400/10 h-7 px-2"
                               >
                                 <CheckSquare className="w-3 h-3 mr-1" />
