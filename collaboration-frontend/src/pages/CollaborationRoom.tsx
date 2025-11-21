@@ -196,17 +196,50 @@ export function CollaborationRoomContent() {
   }, [brainDumpList, brainDumpStarred]);
 
   // Collaboration context
-  const { currentRoom, isConnected, joinRoom } = useCollaboration();
+  const { currentRoom, isConnected, joinRoom, leaveRoom } = useCollaboration();
 
   // Projects management
   const { projects } = useProjects();
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [roomData, setRoomData] = useState<any>(null);
+
+  // Fetch room details from API
+  useEffect(() => {
+    const fetchRoomData = async () => {
+      try {
+        const token = localStorage.getItem('authToken');
+        if (!token || !roomId) return;
+
+        const response = await fetch(`http://localhost:4001/api/rooms/${roomId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+          setRoomData(data.room);
+        }
+      } catch (error) {
+        console.error('Failed to fetch room data:', error);
+      }
+    };
+
+    fetchRoomData();
+  }, [roomId]);
 
   useEffect(() => {
     if (roomId && isConnected) {
       joinRoom(roomId);
     }
-  }, [roomId, isConnected, joinRoom]);
+    
+    // Cleanup: leave room when component unmounts or roomId changes
+    return () => {
+      if (roomId) {
+        leaveRoom(roomId);
+      }
+    };
+  }, [roomId, isConnected, joinRoom, leaveRoom]);
   
   const selectedProject = useMemo(() => {
     return projects.find(p => p._id === selectedProjectId);
@@ -219,9 +252,10 @@ export function CollaborationRoomContent() {
 
   // Memoize room object to prevent recreating on every render
   const room = useMemo(() => ({ 
-    name: currentRoom?.name || `Room ${roomId}`, 
+    name: roomData?.name || currentRoom?.name || `Room ${roomId}`,
+    roomCode: roomData?.roomCode || '',
     participants: [] 
-  }), [roomId, currentRoom]);
+  }), [roomId, currentRoom, roomData]);
 
   if (!roomId) {
     return (
@@ -386,9 +420,11 @@ export function CollaborationRoomContent() {
                 <span className="sm:hidden">Back</span>
               </Button>
               <h1 className="text-lg sm:text-xl font-semibold text-white truncate">{room?.name || `Room ${roomId}`}</h1>
-              <Badge variant="outline" className="text-xs text-theme-primary border-theme-primary hidden sm:inline-flex">
-                {roomId}
-              </Badge>
+              {room?.roomCode && (
+                <Badge variant="outline" className="text-xs sm:text-sm font-mono text-theme-primary border-theme-primary bg-theme-primary/10">
+                  {room.roomCode}
+                </Badge>
+              )}
             </div>
             <div className="flex items-center gap-3 sm:gap-6 w-full sm:w-auto justify-between sm:justify-end">
               <div className="flex items-center gap-2">

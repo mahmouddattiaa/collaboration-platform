@@ -55,6 +55,12 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
 
   const joinRoom = useCallback((roomId: string) => {
     if (!socket) return;
+    
+    // Leave current room if exists
+    if (currentRoom && currentRoom.id !== roomId) {
+      socket.emit('leave-room', currentRoom.id);
+    }
+    
     socket.emit('join-room', roomId);
     setCurrentRoom({
       id: roomId,
@@ -64,13 +70,15 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
       createdAt: new Date()
     });
     setMessages([]);
-  }, [socket]);
+    console.log(`🚪 Joined room: ${roomId}`);
+  }, [socket, currentRoom]);
 
   const leaveRoom = useCallback((roomId: string) => {
     if (!socket) return;
     socket.emit('leave-room', roomId);
     setCurrentRoom(null);
     setMessages([]);
+    console.log(`👋 Left room: ${roomId}`);
   }, [socket]);
 
   const sendMessage = useCallback((roomId: string, message: string) => {

@@ -36,8 +36,10 @@ class RoomService {
 
   // Get user's rooms
   async getUserRooms(token: string): Promise<Room[]> {
-    const response = await apiClient.get<Room[]>('/api/rooms', token);
-    return response.data as Room[];
+    const response = await apiClient.get<any>('/api/rooms', token);
+    console.log('📥 getUserRooms response:', response);
+    // Backend returns { success: true, data: [...rooms] }
+    return response.data || [];
   }
 
   // Update room
