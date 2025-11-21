@@ -79,23 +79,33 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
   }, [socket]);
 
   useEffect(() => {
+    console.log('🔍 CollaborationContext useEffect - user:', user ? 'logged in' : 'not logged in');
+    
     if (user) {
       const token = localStorage.getItem('token');
-      if (!token) return;
+      console.log('🔍 Token exists:', !!token);
+      console.log('🔍 Socket URL:', SOCKET_URL);
+      
+      if (!token) {
+        console.error('❌ No token found in localStorage');
+        return;
+      }
 
+      console.log('🔌 Attempting to connect to Socket.io server...');
       const newSocket = io(SOCKET_URL, {
         auth: {
           token: `${token}`
-        }
+        },
+        transports: ['websocket', 'polling']
       });
 
       newSocket.on('connect', () => {
-        console.log('✅ Connected to collaboration server');
+        console.log('✅ Connected to collaboration server - Socket ID:', newSocket.id);
         setIsConnected(true);
       });
 
-      newSocket.on('disconnect', () => {
-        console.log('❌ Disconnected from collaboration server');
+      newSocket.on('disconnect', (reason) => {
+        console.log('❌ Disconnected from collaboration server - Reason:', reason);
         setIsConnected(false);
       });
 
@@ -124,12 +134,18 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
       });
 
       newSocket.on('connect_error', (error) => {
-        console.error('❌ Connection error:', error.message);
+        console.error('❌ Socket connection error:', error.message);
+        console.error('Error details:', error);
         toast.error("Connection Failed", {
           description: error.message,
         });
       });
 
+      newSocket.on('error', (error) => {
+        console.error('❌ Socket error:', error);
+      });
+
+      console.log('💾 Socket instance created, setting to state...');
       setSocket(newSocket);
 
       return () => {
