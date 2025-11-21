@@ -14,13 +14,18 @@ export function useAuth() {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
+        console.log('🔐 Initializing auth...');
         const token = authService.getToken();
         const user = authService.getUser();
+        console.log('🔐 Token from storage:', token ? 'exists' : 'null');
+        console.log('🔐 User from storage:', user ? user : 'null');
 
         if (token && user) {
+          console.log('🔐 Token and user found, verifying token...');
           // Verify token is still valid by getting fresh user data
           try {
             const freshUser = await authService.getProfile(token);
+            console.log('✅ Token verified, user authenticated:', freshUser.name);
             setAuthState({
               user: freshUser,
               token,
@@ -28,6 +33,7 @@ export function useAuth() {
               isLoading: false,
             });
           } catch (error) {
+            console.error('❌ Token verification failed:', error);
             // Token is invalid, clear auth
             authService.logout();
             setAuthState({
@@ -38,6 +44,7 @@ export function useAuth() {
             });
           }
         } else {
+          console.log('❌ No token or user in storage');
           setAuthState({
             user: null,
             token: null,
@@ -46,7 +53,7 @@ export function useAuth() {
           });
         }
       } catch (error) {
-        console.error('Auth initialization failed:', error);
+        console.error('❌ Auth initialization failed:', error);
         setAuthState({
           user: null,
           token: null,
