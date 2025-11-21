@@ -1,0 +1,11 @@
+# MERN Stack Specific Ignores
+node_modules/
+dist/
+build/
+.next/
+coverage/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+.env
+.DS_Store

@@ -1,35 +1,27 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { toast } from 'sonner';
 import { SOCKET_URL } from "@/config/api";
-// import collaborationApi from "@/services/collaboration"; // Commented out - file doesn't exist
 import { useAuth } from "@/contexts/AuthContext";
 
-// Types ---------------------------------------------------
-export interface Participant {
-  id: string;
+// Types
+export interface User {
+  _id: string;
   name: string;
+  email: string;
   avatar?: string;
-  status: 'online' | 'away' | 'offline';
 }
 
 export interface Message {
-  id: string;
-  senderId: string;
-  content: string;
-  type: 'text' | 'file' | 'system';
-  metadata?: {
-    fileName?: string;
-    fileUrl?: string;
-    fileType?: string;
-    fileSize?: number;
-  };
-  createdAt: Date;
+  user: User;
+  message: string;
+  timestamp: Date;
 }
 
 export interface Room {
   id: string;
   name: string;
-  participants: Participant[];
+  members: User[];
   messages: Message[];
   createdAt: Date;
 }
@@ -38,17 +30,19 @@ interface CollaborationContextType {
   socket: Socket | null;
   currentRoom: Room | null;
   isConnected: boolean;
+  messages: Message[];
   connect: () => void;
   disconnect: () => void;
   joinRoom: (roomId: string) => void;
   leaveRoom: (roomId: string) => void;
-  sendMessage: (content: string) => void;
+  sendMessage: (roomId: string, content: string) => void;
 }
 
 const CollaborationContext = createContext<CollaborationContextType>({
   socket: null,
   currentRoom: null,
   isConnected: false,
+  messages: [],
   connect: () => {},
   disconnect: () => {},
   joinRoom: () => {},
@@ -56,11 +50,11 @@ const CollaborationContext = createContext<CollaborationContextType>({
   sendMessage: () => {}
 });
 
-// Provider ------------------------------------------------
 export function CollaborationProvider({ children }: { children: React.ReactNode }) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [currentRoom, setCurrentRoom] = useState<Room | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
   const { user } = useAuth();
 
   const connect = useCallback(() => {
@@ -70,9 +64,8 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
     if (!token) return;
 
     const newSocket = io(SOCKET_URL, {
-      withCredentials: true,
       auth: {
-        token: `Bearer ${token}`
+        token: `${token}` // The backend expects the token without "Bearer "
       }
     });
 
@@ -86,24 +79,27 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
       setIsConnected(false);
     });
 
-    newSocket.on('room-data', ({ room }) => {
-      setCurrentRoom(room);
+    newSocket.on('receive-message', (message: Message) => {
+      setMessages((prevMessages) => [...prevMessages, message]);
     });
 
-    newSocket.on('participant-joined', ({ room }) => {
-      setCurrentRoom(room);
+    newSocket.on('user-joined-notification', (notification: { title: string, message: string }) => {
+      toast.success(notification.title, {
+        description: notification.message,
+      });
     });
 
-    newSocket.on('participant-left', ({ room }) => {
-      setCurrentRoom(room);
-    });
-
-    newSocket.on('new-message', ({ room }) => {
-      setCurrentRoom(room);
+    newSocket.on('user-left-notification', (notification: { title: string, message: string }) => {
+      toast.info(notification.title, {
+        description: notification.message,
+      });
     });
 
     newSocket.on('error', ({ message }) => {
       console.error('Collaboration server error:', message);
+      toast.error("Connection Error", {
+        description: message,
+      });
     });
 
     setSocket(newSocket);
@@ -123,40 +119,20 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
   }, [socket]);
 
   const joinRoom = useCallback((roomId: string) => {
-    if (!socket || !user) return;
-
-    socket.emit('join-room', {
-      roomId,
-      userId: user.id,
-      userName: `${user.firstName} ${user.lastName}`,
-      userAvatar: user.profilePicture
-    });
-  }, [socket, user]);
+    if (!socket) return;
+    socket.emit('join-room', roomId);
+  }, [socket]);
 
   const leaveRoom = useCallback((roomId: string) => {
-    if (!socket || !user) return;
-
-    socket.emit('leave-room', {
-      roomId,
-      userId: user.id
-    });
-
+    if (!socket) return;
+    socket.emit('leave-room', roomId);
     setCurrentRoom(null);
-  }, [socket, user]);
+  }, [socket]);
 
-  const sendMessage = useCallback((content: string) => {
-    if (!socket || !currentRoom || !user) return;
-
-    socket.emit('send-message', {
-      roomId: currentRoom.id,
-      message: {
-        userId: user.id,
-        content,
-        type: 'text',
-        timestamp: new Date()
-      }
-    });
-  }, [socket, currentRoom, user]);
+  const sendMessage = useCallback((roomId: string, message: string) => {
+    if (!socket) return;
+    socket.emit('send-message', { roomId, message });
+  }, [socket]);
 
   useEffect(() => {
     if (user) {
@@ -170,6 +146,7 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
     socket,
     currentRoom,
     isConnected,
+    messages,
     connect,
     disconnect,
     joinRoom,
@@ -184,7 +161,6 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
   );
 }
 
-// Hook ----------------------------------------------------
 export function useCollaboration() {
   const context = useContext(CollaborationContext);
   if (!context) {

@@ -1,16 +1,13 @@
 const Project = require("../models/Project");
-const mongoose = require("mongoose");
+const { BadRequestError, NotFoundError } = require('../utils/errors');
 
 // Get all projects for a room
-exports.getProjects = async (req, res) => {
+exports.getProjects = async (req, res, next) => {
   try {
     const { roomId } = req.params;
 
     if (!roomId) {
-      return res.status(400).json({
-        success: false,
-        message: "Room ID is required",
-      });
+      throw new BadRequestError("Room ID is required");
     }
 
     const projects = await Project.find({ roomId })
@@ -22,34 +19,23 @@ exports.getProjects = async (req, res) => {
       data: projects,
     });
   } catch (error) {
-    console.error("Get projects error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error fetching projects",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // Get single project by ID
-exports.getProjectById = async (req, res) => {
+exports.getProjectById = async (req, res, next) => {
   try {
     const { projectId } = req.params;
 
     if (!projectId) {
-      return res.status(400).json({
-        success: false,
-        message: "Project ID is required",
-      });
+      throw new BadRequestError("Project ID is required");
     }
 
     const project = await Project.findById(projectId).lean();
 
     if (!project) {
-      return res.status(404).json({
-        success: false,
-        message: "Project not found",
-      });
+      throw new NotFoundError("Project not found");
     }
 
     res.status(200).json({
@@ -57,25 +43,17 @@ exports.getProjectById = async (req, res) => {
       data: project,
     });
   } catch (error) {
-    console.error("Get project error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error fetching project",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // Create new project
-exports.createProject = async (req, res) => {
+exports.createProject = async (req, res, next) => {
   try {
     const { roomId, ...projectData } = req.body;
 
     if (!roomId || !projectData.name) {
-      return res.status(400).json({
-        success: false,
-        message: "Room ID and project name are required",
-      });
+      throw new BadRequestError("Room ID and project name are required");
     }
 
     const newProject = new Project({
@@ -100,35 +78,24 @@ exports.createProject = async (req, res) => {
       data: newProject,
     });
   } catch (error) {
-    console.error("Create project error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error creating project",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // Update project
-exports.updateProject = async (req, res) => {
+exports.updateProject = async (req, res, next) => {
   try {
     const { projectId } = req.params;
     const updateData = req.body;
 
     if (!projectId) {
-      return res.status(400).json({
-        success: false,
-        message: "Project ID is required",
-      });
+      throw new BadRequestError("Project ID is required");
     }
 
     const project = await Project.findById(projectId);
 
     if (!project) {
-      return res.status(404).json({
-        success: false,
-        message: "Project not found",
-      });
+      throw new NotFoundError("Project not found");
     }
 
     // Clean phases data - remove MongoDB's _id field conflicts
@@ -169,34 +136,23 @@ exports.updateProject = async (req, res) => {
       data: project,
     });
   } catch (error) {
-    console.error("Update project error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error updating project",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // Delete project
-exports.deleteProject = async (req, res) => {
+exports.deleteProject = async (req, res, next) => {
   try {
     const { projectId } = req.params;
 
     if (!projectId) {
-      return res.status(400).json({
-        success: false,
-        message: "Project ID is required",
-      });
+      throw new BadRequestError("Project ID is required");
     }
 
     const project = await Project.findByIdAndDelete(projectId);
 
     if (!project) {
-      return res.status(404).json({
-        success: false,
-        message: "Project not found",
-      });
+      throw new NotFoundError("Project not found");
     }
 
     res.status(200).json({
@@ -204,25 +160,17 @@ exports.deleteProject = async (req, res) => {
       message: "Project deleted successfully",
     });
   } catch (error) {
-    console.error("Delete project error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error deleting project",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // Bulk operations
-exports.bulkUpdateProjects = async (req, res) => {
+exports.bulkUpdateProjects = async (req, res, next) => {
   try {
     const { operations } = req.body;
 
     if (!Array.isArray(operations) || operations.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Operations array is required",
-      });
+      throw new BadRequestError("Operations array is required");
     }
 
     const results = await Promise.all(
@@ -247,11 +195,6 @@ exports.bulkUpdateProjects = async (req, res) => {
       data: results,
     });
   } catch (error) {
-    console.error("Bulk update error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error performing bulk operations",
-      error: error.message,
-    });
+    next(error);
   }
 };
