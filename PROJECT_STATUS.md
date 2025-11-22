@@ -24,6 +24,21 @@
 
 ---
 
+## 🚀 DEPLOYMENT & VERSION CONTROL (CRITICAL)
+
+**⚠️ IMPORTANT FOR AI AGENTS:**
+The Frontend and Backend are **ALREADY DEPLOYED** on Vercel.
+- **Frontend:** `collaboration-frontend`
+- **Backend:** `collaboration-backend` (or similar)
+
+**Action Required when "Deploying":**
+1. **NEVER** attempt to create new Vercel projects.
+2. **ALWAYS** use `vercel --prod --yes` to update the **existing** deployments.
+3. Pushing to `master`/`main` also triggers automatic deployments if Git is linked.
+4. Failure to follow this leads to multiple stale instances and configuration drift.
+
+---
+
 ## 🎯 Project Overview
 
 A real-time collaboration platform that allows users to create rooms, join existing rooms using 6-digit codes, and communicate in real-time using WebSocket technology. The platform provides authentication, project management, and AI-powered features through Google Gemini integration.
