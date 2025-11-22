@@ -230,3 +230,43 @@ exports.deleteRoom = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.removeMember = async (req, res, next) => {
+  try {
+    const { roomId, userId } = req.params;
+    const requesterId = req.user._id;
+
+    const room = await Room.findById(roomId);
+    if (!room) throw new NotFoundError("Room not found");
+
+    // Check if requester is host
+    const isHost = room.createdBy.toString() === requesterId.toString();
+    if (!isHost) {
+      throw new Error("Only the room host can remove members");
+    }
+
+    // Prevent removing self (host should delete room instead)
+    if (userId === requesterId.toString()) {
+      throw new Error("Host cannot be removed. Delete the room instead.");
+    }
+
+    await room.removeMember(userId);
+
+    // Broadcast member removed event
+    const io = req.app.get("io");
+    if (io) {
+      io.to(roomId).emit("member-removed", { userId });
+      
+      // Also force disconnect the removed user if they are connected
+      // We can't easily get their socket ID here without a map, 
+      // but the client-side listener for 'member-removed' will handle the UI part.
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Member removed successfully"
+    });
+  } catch (error) {
+    next(error);
+  }
+};

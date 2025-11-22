@@ -250,6 +250,31 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
         });
       });
 
+      // Listen for member removal
+      newSocket.on('member-removed', (data: { userId: string }) => {
+        console.log('🚫 Member removed:', data.userId);
+        
+        if (user && data.userId === user._id) {
+            toast.error("Removed from Room", {
+                description: "You have been removed from this room by the host.",
+            });
+            navigate('/dashboard');
+            setCurrentRoom(null);
+        } else {
+            // Update local state to remove the user
+            setCurrentRoom((prev) => {
+                if (!prev) return null;
+                return {
+                    ...prev,
+                    members: prev.members.filter(m => m._id !== data.userId)
+                };
+            });
+            setOnlineUsers((prev) => prev.filter(u => u._id !== data.userId));
+            // Optional: Toast notification
+            // toast.info("Member Removed", { description: "A member was removed from the room." });
+        }
+      });
+
       newSocket.on('connect_error', (error) => {
         console.error('❌ Socket connection error:', error.message);
         console.error('Error details:', error);

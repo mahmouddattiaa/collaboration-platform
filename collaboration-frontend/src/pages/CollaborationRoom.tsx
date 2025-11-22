@@ -464,20 +464,21 @@ export function CollaborationRoomContent() {
                   <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400 animate-pulse' : 'bg-red-500'}`} />
                   <span className="text-xs sm:text-sm text-white/60">{isConnected ? 'Connected' : 'Disconnected'}</span>
                 </div>
-                <PresenceAvatarGroup members={room.participants} onlineUsers={onlineUsers} />
+                              <PresenceAvatarGroup members={room.participants} onlineUsers={onlineUsers} />
+                              
+                              {isHost && (
+                                <RoomSettingsModal 
+                                  roomId={roomId} 
+                                  currentName={room.name}
+                                  currentDescription={room.description}
+                                  members={room.participants}
+                                  currentUserId={user?._id}
+                                  onRoomUpdated={handleRoomUpdated}
+                                />
+                              )}
                 
-                {isHost && (
-                  <RoomSettingsModal 
-                    roomId={roomId} 
-                    currentName={room.name}
-                    currentDescription={room.description}
-                    onRoomUpdated={handleRoomUpdated}
-                  />
-                )}
-  
-                <Button 
-                  variant="outline"
-                  onClick={() => setIsConferencePanelOpen(true)}
+                              <Button 
+                                variant="outline"                  onClick={() => setIsConferencePanelOpen(true)}
                   className="border-theme-primary/30 hover:bg-theme-primary/10 text-theme-primary hover:border-theme-primary text-sm"
                   size="sm"
                 >

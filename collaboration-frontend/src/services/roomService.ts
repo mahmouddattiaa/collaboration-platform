@@ -58,6 +58,11 @@ class RoomService {
   async deleteRoom(roomId: string, token: string): Promise<void> {
     await apiClient.delete(`/api/rooms/${roomId}`, token);
   }
+
+  // Remove member
+  async removeMember(roomId: string, userId: string, token: string): Promise<void> {
+    await apiClient.delete(`/api/rooms/${roomId}/members/${userId}`, token);
+  }
 }
 
 // Create and export room service instance
