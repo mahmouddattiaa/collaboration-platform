@@ -272,6 +272,14 @@ collaboration-platform/
 
 ## 📝 Recent Changes
 
+### November 22, 2025 (Session 5)
+1. **Verified Multi-User Functionality**
+   - Successfully ran multi-user simulation script (`test-multi-user.js`)
+   - Verified real-time messaging between 2 distinct users
+   - Confirmed typing indicators work across sockets
+   - Confirmed online user count updates correctly (1 -> 2 users)
+   - Validated room isolation and joining flow
+
 ### November 22, 2025 (Session 4)
 1. **Implemented Online User Status**
    - Added `room-users-update` socket event
@@ -365,10 +373,10 @@ collaboration-platform/
    - [ ] Show inactive status to room members
 
 2. **Multi-User Testing**
-   - [ ] Test with 2+ users in same room
-   - [ ] Verify message broadcasting works correctly
-   - [ ] Test join/leave notifications
-   - [ ] Test simultaneous messaging
+   - [x] Test with 2+ users in same room
+   - [x] Verify message broadcasting works correctly
+   - [x] Test join/leave notifications
+   - [x] Test simultaneous messaging
 
 ### Medium Priority
 
