@@ -273,13 +273,20 @@ collaboration-platform/
 ## 📝 Recent Changes
 
 ### November 22, 2025 (Session 5)
-1. **Implemented Activity Timeout**
+1. **Implemented Room Member List UI**
+   - Updated `PresenceAvatarGroup` component to handle real-time user data
+   - Integrated `onlineUsers` from `CollaborationContext` with room members
+   - Displays online/offline status indicators
+   - Shows tooltips with user names and status
+   - Fallback support for when room member data is loading
+
+2. **Implemented Activity Timeout**
    - Backend tracks socket activity timestamp
    - Automatically disconnects users after 5 minutes of inactivity
    - Frontend displays persistent warning toast with "Refresh" action upon timeout
    - Added `inactivity-disconnect` socket event
 
-2. **Verified Multi-User Functionality**
+3. **Verified Multi-User Functionality**
    - Successfully ran multi-user simulation script (`test-multi-user.js`)
    - Verified real-time messaging between 2 distinct users
    - Confirmed typing indicators work across sockets
@@ -372,8 +379,8 @@ collaboration-platform/
 ### High Priority
 
 1. **Room Features** (Moved from Medium Priority)
-   - [ ] Display room member list
-   - [ ] Show online/offline status
+   - [x] Display room member list
+   - [x] Show online/offline status
    - [ ] Add room settings (rename, delete)
    - [ ] Add ability to remove members (host only)
    - [ ] Room search functionality

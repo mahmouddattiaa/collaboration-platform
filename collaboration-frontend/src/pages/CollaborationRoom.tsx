@@ -196,7 +196,7 @@ export function CollaborationRoomContent() {
   }, [brainDumpList, brainDumpStarred]);
 
   // Collaboration context
-  const { currentRoom, isConnected, joinRoom, leaveRoom } = useCollaboration();
+  const { currentRoom, isConnected, joinRoom, leaveRoom, onlineUsers } = useCollaboration();
 
   // Projects management
   const { projects } = useProjects();
@@ -257,7 +257,7 @@ export function CollaborationRoomContent() {
   const room = useMemo(() => ({ 
     name: roomData?.name || currentRoom?.name || `Room ${roomId}`,
     roomCode: roomData?.roomCode || '',
-    participants: [] 
+    participants: roomData?.members || [] 
   }), [roomId, currentRoom, roomData]);
 
   if (!roomId) {
@@ -431,10 +431,10 @@ export function CollaborationRoomContent() {
             </div>
             <div className="flex items-center gap-3 sm:gap-6 w-full sm:w-auto justify-between sm:justify-end">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                <span className="text-xs sm:text-sm text-white/60">Connected</span>
+                <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400 animate-pulse' : 'bg-red-500'}`} />
+                <span className="text-xs sm:text-sm text-white/60">{isConnected ? 'Connected' : 'Disconnected'}</span>
               </div>
-              <PresenceAvatarGroup participants={[]} />
+              <PresenceAvatarGroup members={room.participants} onlineUsers={onlineUsers} />
               <Button 
                 variant="outline"
                 onClick={() => setIsConferencePanelOpen(true)}
