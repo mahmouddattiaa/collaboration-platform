@@ -5,7 +5,7 @@ const isDevelopment = window.location.hostname === 'localhost' || window.locatio
 
 const BACKEND_URL = isDevelopment 
   ? "http://localhost:4001"  // Local backend
-  : "https://collaboration-flame.vercel.app"; // Production backend
+  : "https://collaboration-l25k0je8o-mahmouddattiaas-projects.vercel.app"; // Production backend
 
 export const API_BASE_URL = BACKEND_URL;
 export const COLLAB_BASE_URL = BACKEND_URL;

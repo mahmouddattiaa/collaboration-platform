@@ -76,7 +76,8 @@ app.use(
       const allowedOrigins = [
         "http://localhost:3000",
         "http://localhost:5173",
-        "https://collaboration-frontend-seven.vercel.app", // Stable production URL - never changes!
+        "https://collaboration-frontend-seven.vercel.app", // Legacy
+        "https://collaboration-frontend-n8ezp1rra-mahmouddattiaas-projects.vercel.app", // Current Production
       ];
 
       // Allow all Vercel preview deployments (for testing)
