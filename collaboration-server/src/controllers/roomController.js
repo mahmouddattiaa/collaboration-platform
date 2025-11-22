@@ -132,7 +132,8 @@ exports.getRoomMessages = async (req, res, next) => {
     const messages = await Message.find(query)
       .sort({ createdAt: -1 })
       .limit(parseInt(limit))
-      .populate('sender', 'name email _id');
+      .populate('sender', 'name email _id')
+      .populate('readBy.user', 'name email avatar');
 
     res.status(200).json({
       success: true,

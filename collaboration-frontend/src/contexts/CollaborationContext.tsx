@@ -14,17 +14,23 @@ export interface User {
   profilePicture?: string;
 }
 
+export interface ReadReceipt {
+  user: User | string; // Can be ID or User object
+  readAt: Date;
+}
+
 export interface Message {
+  _id: string;
   user: User;
   message: string;
   timestamp: Date;
-  _id?: string; // Added ID for keys
+  readBy: ReadReceipt[];
 }
 
 export interface Room {
   id: string;
   name: string;
-  description?: string; // Added description
+  description?: string;
   members: User[];
   messages: Message[];
   createdAt: Date;
@@ -36,12 +42,13 @@ interface CollaborationContextType {
   isConnected: boolean;
   messages: Message[];
   typingUsers: { userId: string; userName: string }[];
-  onlineUsers: User[]; // Added onlineUsers
+  onlineUsers: User[];
   joinRoom: (roomId: string) => Promise<void>;
   leaveRoom: (roomId: string) => void;
   sendMessage: (roomId: string, content: string) => void;
   startTyping: (roomId: string) => void;
   stopTyping: (roomId: string) => void;
+  markMessagesRead: (messageIds: string[]) => void;
 }
 
 const CollaborationContext = createContext<CollaborationContextType>({
@@ -50,12 +57,13 @@ const CollaborationContext = createContext<CollaborationContextType>({
   isConnected: false,
   messages: [],
   typingUsers: [],
-  onlineUsers: [], // Initial state
+  onlineUsers: [],
   joinRoom: async () => {},
   leaveRoom: () => {},
   sendMessage: () => {},
   startTyping: () => {},
   stopTyping: () => {},
+  markMessagesRead: () => {},
 });
 
 export function CollaborationProvider({ children }: { children: React.ReactNode }) {
@@ -64,27 +72,17 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
   const [isConnected, setIsConnected] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [typingUsers, setTypingUsers] = useState<{ userId: string; userName: string }[]>([]);
-  const [onlineUsers, setOnlineUsers] = useState<User[]>([]); // State for online users
+  const [onlineUsers, setOnlineUsers] = useState<User[]>([]);
   const { user } = useAuth();
   const navigate = useNavigate();
 
   const joinRoom = useCallback(async (roomId: string) => {
-    if (!socket) {
-      console.error('❌ Cannot join room: socket not initialized');
-      return;
-    }
-    if (!socket.connected) {
-      console.error('❌ Cannot join room: socket not connected');
-      return;
-    }
+    if (!socket) return;
     
-    // Leave current room if exists
     if (currentRoom && currentRoom.id !== roomId) {
-      console.log(`👋 Leaving previous room: ${currentRoom.id}`);
       socket.emit('leave-room', currentRoom.id);
     }
     
-    console.log(`🚪 Emitting join-room event for: ${roomId}`);
     socket.emit('join-room', roomId);
     setCurrentRoom({
       id: roomId,
@@ -93,50 +91,40 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
       messages: [],
       createdAt: new Date()
     });
-    setTypingUsers([]); // Clear typing users on room switch
-    setOnlineUsers([]); // Clear online users on room switch
+    setTypingUsers([]);
+    setOnlineUsers([]);
     
-    // Fetch message history
     try {
       const token = localStorage.getItem('authToken');
       if (token) {
         const history = await roomService.getRoomMessages(roomId, token);
         const formattedMessages = history.map((msg: any) => ({
+          _id: msg._id,
           user: msg.sender,
           message: msg.content,
           timestamp: new Date(msg.createdAt),
-          _id: msg._id
+          readBy: msg.readBy || []
         }));
         setMessages(formattedMessages);
-        console.log(`📜 Loaded ${formattedMessages.length} messages from history`);
       }
     } catch (error) {
       console.error('❌ Failed to load message history:', error);
-      toast.error('Failed to load chat history');
       setMessages([]);
     }
-
-    console.log(`✅ Room state updated: ${roomId}`);
   }, [socket, currentRoom]);
 
   const leaveRoom = useCallback((roomId: string) => {
-    if (!socket || !socket.connected) {
-      console.error('❌ Cannot leave room: socket not available');
-      return;
-    }
-    console.log(`👋 Emitting leave-room event for: ${roomId}`);
+    if (!socket) return;
     socket.emit('leave-room', roomId);
     setCurrentRoom(null);
     setMessages([]);
     setTypingUsers([]);
     setOnlineUsers([]);
-    console.log(`✅ Left room: ${roomId}`);
   }, [socket]);
 
   const sendMessage = useCallback((roomId: string, message: string) => {
     if (!socket) return;
     socket.emit('send-message', { roomId, message });
-    // Stop typing immediately after sending
     socket.emit('typing-stop', roomId);
   }, [socket]);
 
@@ -150,169 +138,131 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
     socket.emit('typing-stop', roomId);
   }, [socket]);
 
-  useEffect(() => {
-    console.log('🔍 CollaborationContext useEffect - user:', user ? 'logged in' : 'not logged in');
-    console.log('🔍 User object:', user);
+  const markMessagesRead = useCallback((messageIds: string[]) => {
+    if (!socket || !currentRoom) return;
+    if (messageIds.length === 0) return;
     
+    socket.emit('mark-messages-read', {
+      roomId: currentRoom.id,
+      messageIds
+    });
+  }, [socket, currentRoom]);
+
+  useEffect(() => {
     if (user) {
       const token = localStorage.getItem('authToken');
-      console.log('🔍 Token exists:', !!token);
-      console.log('🔍 Socket URL:', SOCKET_URL);
-      
-      if (!token) {
-        console.error('❌ No token found in localStorage');
-        return;
-      }
+      if (!token) return;
 
-      console.log('🔌 Attempting to connect to Socket.io server...');
       const newSocket = io(SOCKET_URL, {
-        auth: {
-          token: `${token}`
-        },
+        auth: { token },
         transports: ['websocket', 'polling']
       });
 
-      newSocket.on('connect', () => {
-        console.log('✅ Connected to collaboration server - Socket ID:', newSocket.id);
-        setIsConnected(true);
-      });
+      newSocket.on('connect', () => setIsConnected(true));
+      newSocket.on('disconnect', () => setIsConnected(false));
 
-      newSocket.on('disconnect', (reason) => {
-        console.log('❌ Disconnected from collaboration server - Reason:', reason);
-        setIsConnected(false);
-      });
-
-      newSocket.on('receive-message', (message: Message) => {
-        console.log('📨 Received message:', message);
-        setMessages((prevMessages) => [...prevMessages, message]);
-        // Also remove sender from typing list if they were there
+      newSocket.on('receive-message', (message: any) => {
+        setMessages((prev) => [...prev, {
+            _id: message._id,
+            user: message.user,
+            message: message.message,
+            timestamp: new Date(message.timestamp),
+            readBy: message.readBy || []
+        }]);
         setTypingUsers((prev) => prev.filter(u => u.userId !== message.user._id));
       });
 
-      newSocket.on('user-typing', (data: { userId: string, userName: string }) => {
+      newSocket.on('messages-read-update', (data: { roomId: string, userId: string, messageIds: string[], readAt: Date }) => {
+        if (currentRoom && data.roomId !== currentRoom.id) return; // Ignore if not current room
+
+        setMessages((prevMessages) => {
+            return prevMessages.map((msg) => {
+                if (data.messageIds.includes(msg._id)) {
+                    // Check if user already marked as read
+                    const alreadyRead = msg.readBy.some(r => {
+                        const id = typeof r.user === 'string' ? r.user : r.user._id;
+                        return id === data.userId;
+                    });
+                    
+                    if (!alreadyRead) {
+                        return {
+                            ...msg,
+                            readBy: [...msg.readBy, { user: data.userId, readAt: new Date(data.readAt) }]
+                        };
+                    }
+                }
+                return msg;
+            });
+        });
+      });
+
+      newSocket.on('user-typing', (data) => {
         setTypingUsers((prev) => {
           if (prev.some(u => u.userId === data.userId)) return prev;
           return [...prev, data];
         });
       });
 
-      newSocket.on('user-stopped-typing', (data: { userId: string }) => {
+      newSocket.on('user-stopped-typing', (data) => {
         setTypingUsers((prev) => prev.filter(u => u.userId !== data.userId));
       });
 
-      newSocket.on('room-users-update', (users: User[]) => {
-        console.log('👥 Active users updated:', users);
-        setOnlineUsers(users);
-      });
+      newSocket.on('room-users-update', (users) => setOnlineUsers(users));
 
-      newSocket.on('user-joined-notification', (notification: { title: string, message: string }) => {
-        toast.success(notification.title, {
-          description: notification.message,
-        });
-      });
-
-      newSocket.on('user-left-notification', (notification: { title: string, message: string }) => {
-        toast.info(notification.title, {
-          description: notification.message,
-        });
-      });
-
-      newSocket.on('room-joined-confirmation', (data: { roomId: string, message: string }) => {
-        console.log('🎉 Room joined confirmation received:', data);
-        toast.success("Room Joined", {
-          description: data.message,
-        });
-      });
-
-      // Listen for room deletion
-      newSocket.on('room-deleted', (data: { roomId: string }) => {
-        console.warn('🗑 Room deleted:', data.roomId);
-        toast.error("Room Deleted", {
-            description: "This room has been deleted by the host.",
-        });
-        // Check if we are currently in this room (or if we just navigate anyway to be safe)
-        // We can compare with currentRoom state if needed, but navigating to dashboard is safe default
+      newSocket.on('user-joined-notification', (n) => toast.success(n.title, { description: n.message }));
+      newSocket.on('user-left-notification', (n) => toast.info(n.title, { description: n.message }));
+      newSocket.on('room-joined-confirmation', (d) => toast.success("Room Joined", { description: d.message }));
+      
+      newSocket.on('room-deleted', (data) => {
+        toast.error("Room Deleted", { description: "This room has been deleted by the host." });
         navigate('/dashboard');
         setCurrentRoom(null);
       });
 
-      // Listen for room updates
-      newSocket.on('room-updated', (updatedRoom: any) => {
-        console.log('📝 Room updated:', updatedRoom);
+      newSocket.on('room-updated', (updatedRoom) => {
         setCurrentRoom((prev) => {
             if (prev && prev.id === updatedRoom._id) {
                 return { ...prev, name: updatedRoom.name, description: updatedRoom.description };
             }
             return prev;
         });
-        toast.info("Room Updated", {
-            description: `Room settings have been updated.`,
-        });
+        toast.info("Room Updated");
       });
 
-      // Listen for member removal
-      newSocket.on('member-removed', (data: { userId: string }) => {
-        console.log('🚫 Member removed:', data.userId);
-        
+      newSocket.on('member-removed', (data) => {
         if (user && data.userId === user._id) {
-            toast.error("Removed from Room", {
-                description: "You have been removed from this room by the host.",
-            });
+            toast.error("Removed from Room", { description: "You have been removed from this room." });
             navigate('/dashboard');
             setCurrentRoom(null);
         } else {
-            // Update local state to remove the user
             setCurrentRoom((prev) => {
                 if (!prev) return null;
-                return {
-                    ...prev,
-                    members: prev.members.filter(m => m._id !== data.userId)
-                };
+                return { ...prev, members: prev.members.filter(m => m._id !== data.userId) };
             });
             setOnlineUsers((prev) => prev.filter(u => u._id !== data.userId));
-            // Optional: Toast notification
-            // toast.info("Member Removed", { description: "A member was removed from the room." });
         }
       });
 
-      newSocket.on('connect_error', (error) => {
-        console.error('❌ Socket connection error:', error.message);
-        console.error('Error details:', error);
-        toast.error("Connection Failed", {
-          description: error.message,
+      newSocket.on('inactivity-disconnect', (d) => {
+        toast.warning("Session Timeout", { 
+            description: d.message, 
+            duration: Infinity, 
+            action: { label: "Refresh", onClick: () => window.location.reload() } 
         });
       });
 
-      newSocket.on('inactivity-disconnect', (data: { message: string }) => {
-        console.warn('💤 Received inactivity disconnect:', data.message);
-        toast.warning("Session Timeout", {
-          description: data.message,
-          duration: Infinity, // Keep it visible until user dismisses or refreshes
-          action: {
-            label: "Refresh",
-            onClick: () => window.location.reload()
-          }
-        });
-      });
-
-      newSocket.on('error', (error) => {
-        console.error('❌ Socket error:', error);
-      });
-
-      console.log('💾 Socket instance created, setting to state...');
       setSocket(newSocket);
 
       return () => {
-        console.log('🔌 Cleaning up socket connection');
         newSocket.disconnect();
       };
     } else {
-      if (socket) {
-        socket.disconnect();
-        setSocket(null);
-      }
+        if (socket) {
+            socket.disconnect();
+            setSocket(null);
+        }
     }
-  }, [user]); // navigate added to deps if strict, but usually stable
+  }, [user]); // removed socket from deps to avoid loop, logic depends on user mainly
 
   const value = {
     socket,
@@ -325,7 +275,8 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
     leaveRoom,
     sendMessage,
     startTyping,
-    stopTyping
+    stopTyping,
+    markMessagesRead
   };
 
   return (

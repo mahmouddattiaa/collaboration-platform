@@ -288,7 +288,16 @@ collaboration-platform/
 ## 📝 Recent Changes
 
 ### November 22, 2025 (Session 6)
-1. **Implemented Room Settings**
+1. **Implemented Message Read Receipts**
+   - Added WhatsApp-style read receipts (Gray/Blue ticks)
+   - 1 Gray Tick: Sent
+   - 2 Gray Ticks: Read by some users
+   - 2 Blue Ticks: Read by ALL users in the room
+   - Implemented `useInView` to track message visibility
+   - Added tooltip showing exact list of users who read the message
+   - Updated backend to track read status per user per message
+
+2. **Implemented Room Settings**
    - Added "Settings" modal for room hosts
    - Implemented Room Rename and Room Delete functionality
    - Added backend routes (`PUT/DELETE`) with host verification
@@ -296,6 +305,11 @@ collaboration-platform/
      - `room-updated`: Updates room name/description for all members instantly
      - `room-deleted`: Redirects all members to dashboard and shows alert
    - Created Shadcn UI `Dialog`, `Label`, and `Tooltip` components
+
+3. **Implemented Remove Member**
+   - Added "Members" tab to Room Settings
+   - Hosts can remove participants
+   - Real-time removal updates (removed user is redirected)
 
 ### November 22, 2025 (Session 5)
 1. **Implemented Room Member List UI**
@@ -412,8 +426,8 @@ collaboration-platform/
 
 2. **Chat Features**
 
-   - [ ] Typing indicators
-   - [ ] Message read receipts
+   - [x] Typing indicators
+   - [x] Message read receipts
    - [ ] File sharing
    - [ ] Image preview
    - [ ] Emoji support

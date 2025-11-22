@@ -1,3 +1,5 @@
+const Message = require("../../models/Message");
+
 module.exports = (io, socket) => {
   // Track which rooms the user is in
   socket.currentRooms = new Set();
@@ -93,13 +95,11 @@ module.exports = (io, socket) => {
       const { roomId, message } = data;
       console.log(`💬 Message from ${socket.user.name} in room ${roomId}`);
 
-      // Import Message model (ensure it's required at the top if not already, but for this scope we can require it here or assume top-level requires are added)
-      const Message = require("../../models/Message");
-
       const newMessage = await Message.create({
         roomId,
         sender: socket.user._id,
-        content: message
+        content: message,
+        readBy: [{ user: socket.user._id, readAt: new Date() }] // Sender has read it
       });
 
       // Populate sender details for the frontend
@@ -110,10 +110,47 @@ module.exports = (io, socket) => {
         user: socket.user,
         message: newMessage.content,
         timestamp: newMessage.createdAt,
+        readBy: newMessage.readBy
       });
     } catch (error) {
       console.error("Error saving message:", error);
       socket.emit("error", { message: "Failed to send message" });
+    }
+  });
+
+  socket.on("mark-messages-read", async (data) => {
+    try {
+      const { roomId, messageIds } = data;
+      if (!roomId || !messageIds || !Array.isArray(messageIds) || messageIds.length === 0) return;
+
+      const userId = socket.user._id;
+      const readAt = new Date();
+
+      // Update messages in DB
+      // Only update messages in this room where user is NOT already in readBy
+      await Message.updateMany(
+        {
+          _id: { $in: messageIds },
+          roomId: roomId,
+          'readBy.user': { $ne: userId }
+        },
+        {
+          $addToSet: {
+            readBy: { user: userId, readAt: readAt }
+          }
+        }
+      );
+
+      // Broadcast to room (including sender, to update their UI)
+      io.to(roomId).emit("messages-read-update", {
+        roomId,
+        userId,
+        messageIds,
+        readAt
+      });
+      
+    } catch (error) {
+      console.error("Error marking messages read:", error);
     }
   });
 
