@@ -30,8 +30,8 @@ class RoomService {
 
   // Get room details
   async getRoomById(roomId: string, token: string): Promise<Room> {
-    const response = await apiClient.get<Room>(`/api/rooms/${roomId}`, token);
-    return response.data as Room;
+    const response = await apiClient.get<any>(`/api/rooms/${roomId}`, token);
+    return (response as any).room as Room;
   }
 
   // Get user's rooms
@@ -50,8 +50,8 @@ class RoomService {
 
   // Update room
   async updateRoom(roomId: string, updates: Partial<Room>, token: string): Promise<Room> {
-    const response = await apiClient.patch<Room>(`/api/rooms/${roomId}`, updates, token);
-    return response.data as Room;
+    const response = await apiClient.put<any>(`/api/rooms/${roomId}`, updates, token);
+    return (response as any).room as Room;
   }
 
   // Delete room

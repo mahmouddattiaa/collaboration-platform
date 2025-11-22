@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 import { SOCKET_URL } from "@/config/api";
 import { useAuth } from "@/hooks/useAuth";
 import roomService from '@/services/roomService';
@@ -23,6 +24,7 @@ export interface Message {
 export interface Room {
   id: string;
   name: string;
+  description?: string; // Added description
   members: User[];
   messages: Message[];
   createdAt: Date;
@@ -64,6 +66,7 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
   const [typingUsers, setTypingUsers] = useState<{ userId: string; userName: string }[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<User[]>([]); // State for online users
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const joinRoom = useCallback(async (roomId: string) => {
     if (!socket) {
@@ -221,10 +224,29 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
         });
       });
 
-      newSocket.on('error', ({ message }) => {
-        console.error('❌ Collaboration server error:', message);
-        toast.error("Connection Error", {
-          description: message,
+      // Listen for room deletion
+      newSocket.on('room-deleted', (data: { roomId: string }) => {
+        console.warn('🗑 Room deleted:', data.roomId);
+        toast.error("Room Deleted", {
+            description: "This room has been deleted by the host.",
+        });
+        // Check if we are currently in this room (or if we just navigate anyway to be safe)
+        // We can compare with currentRoom state if needed, but navigating to dashboard is safe default
+        navigate('/dashboard');
+        setCurrentRoom(null);
+      });
+
+      // Listen for room updates
+      newSocket.on('room-updated', (updatedRoom: any) => {
+        console.log('📝 Room updated:', updatedRoom);
+        setCurrentRoom((prev) => {
+            if (prev && prev.id === updatedRoom._id) {
+                return { ...prev, name: updatedRoom.name, description: updatedRoom.description };
+            }
+            return prev;
+        });
+        toast.info("Room Updated", {
+            description: `Room settings have been updated.`,
         });
       });
 
@@ -265,7 +287,7 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
         setSocket(null);
       }
     }
-  }, [user]);
+  }, [user]); // navigate added to deps if strict, but usually stable
 
   const value = {
     socket,
@@ -294,4 +316,5 @@ export function useCollaboration() {
     throw new Error('useCollaboration must be used within a CollaborationProvider');
   }
   return context;
-} 
+}
+ 

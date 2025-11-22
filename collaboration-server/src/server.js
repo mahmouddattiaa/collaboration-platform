@@ -33,6 +33,9 @@ const io = new Server(server, {
   },
 });
 
+// Make io accessible in controllers
+app.set("io", io);
+
 app.use(
   helmet({
     contentSecurityPolicy: false, // Disable for development

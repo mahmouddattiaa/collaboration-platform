@@ -272,6 +272,16 @@ collaboration-platform/
 
 ## 📝 Recent Changes
 
+### November 22, 2025 (Session 6)
+1. **Implemented Room Settings**
+   - Added "Settings" modal for room hosts
+   - Implemented Room Rename and Room Delete functionality
+   - Added backend routes (`PUT/DELETE`) with host verification
+   - Implemented real-time updates via socket events:
+     - `room-updated`: Updates room name/description for all members instantly
+     - `room-deleted`: Redirects all members to dashboard and shows alert
+   - Created Shadcn UI `Dialog`, `Label`, and `Tooltip` components
+
 ### November 22, 2025 (Session 5)
 1. **Implemented Room Member List UI**
    - Updated `PresenceAvatarGroup` component to handle real-time user data
@@ -381,7 +391,7 @@ collaboration-platform/
 1. **Room Features** (Moved from Medium Priority)
    - [x] Display room member list
    - [x] Show online/offline status
-   - [ ] Add room settings (rename, delete)
+   - [x] Add room settings (rename, delete)
    - [ ] Add ability to remove members (host only)
    - [ ] Room search functionality
 

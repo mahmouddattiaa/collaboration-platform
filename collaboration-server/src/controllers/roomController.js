@@ -159,3 +159,74 @@ exports.getUserRooms = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.updateRoom = async (req, res, next) => {
+  try {
+    const { roomId } = req.params;
+    const { name, description } = req.body;
+    const userId = req.user._id;
+
+    const room = await Room.findById(roomId);
+    if (!room) throw new NotFoundError("Room not found");
+
+    // Check if user is host
+    // Assuming createdBy is the host, or checking the members array for 'host' role
+    // Based on createRoom, createdBy is set. Let's use that or the members list.
+    // The model has createdBy, let's stick to that for ownership.
+    if (room.createdBy.toString() !== userId.toString()) {
+      throw new Error("Only the room creator can update settings"); // Should be ForbiddenError ideally
+    }
+
+    if (name) room.name = name;
+    if (description) room.description = description;
+
+    await room.save();
+
+    // Broadcast update to room members
+    const io = req.app.get("io");
+    if (io) {
+      io.to(roomId).emit("room-updated", {
+        _id: room._id,
+        name: room.name,
+        description: room.description
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Room updated successfully",
+      room
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.deleteRoom = async (req, res, next) => {
+  try {
+    const { roomId } = req.params;
+    const userId = req.user._id;
+
+    const room = await Room.findById(roomId);
+    if (!room) throw new NotFoundError("Room not found");
+
+    if (room.createdBy.toString() !== userId.toString()) {
+      throw new Error("Only the room creator can delete the room");
+    }
+
+    await Room.findByIdAndDelete(roomId);
+
+    // Broadcast delete event to room members
+    const io = req.app.get("io");
+    if (io) {
+      io.to(roomId).emit("room-deleted", { roomId });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Room deleted successfully"
+    });
+  } catch (error) {
+    next(error);
+  }
+};

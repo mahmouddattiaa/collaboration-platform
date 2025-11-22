@@ -14,6 +14,8 @@ import { useProjects } from '@/hooks/useProjects';
 import { PhasesAndRequirements } from '@/components/workspace/PhasesAndRequirements';
 import { PresenceAvatarGroup } from '@/components/common/PresenceAvatarGroup';
 import { useCollaboration } from '@/contexts/CollaborationContext';
+import { RoomSettingsModal } from '@/components/room/RoomSettingsModal';
+import { useAuth } from '@/hooks/useAuth';
 
 interface BrainDumpIdea {
   id: number;
@@ -195,258 +197,295 @@ export function CollaborationRoomContent() {
     };
   }, [brainDumpList, brainDumpStarred]);
 
-  // Collaboration context
-  const { currentRoom, isConnected, joinRoom, leaveRoom, onlineUsers } = useCollaboration();
-
-  // Projects management
-  const { projects } = useProjects();
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-  const [roomData, setRoomData] = useState<any>(null);
-
-  // Fetch room details from API
-  useEffect(() => {
-    const fetchRoomData = async () => {
-      try {
-        const token = localStorage.getItem('authToken');
-        if (!token || !roomId) return;
-
-        const response = await fetch(`http://localhost:4001/api/rooms/${roomId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        const data = await response.json();
-        if (data.success) {
-          setRoomData(data.room);
-        }
-      } catch (error) {
-        console.error('Failed to fetch room data:', error);
-      }
-    };
-
-    fetchRoomData();
-  }, [roomId]);
-
-  useEffect(() => {
-    if (roomId && isConnected) {
-      console.log(`🚪 Joining room ${roomId}`);
-      joinRoom(roomId);
-    }
-    
-    // Cleanup: leave room when component unmounts or roomId changes
-    return () => {
-      if (roomId && isConnected) {
-        console.log(`👋 Leaving room ${roomId} (cleanup)`);
-        leaveRoom(roomId);
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomId, isConnected]);
+    // Collaboration context
+    const { currentRoom, isConnected, joinRoom, leaveRoom, onlineUsers } = useCollaboration();
+    const { user } = useAuth();
   
-  const selectedProject = useMemo(() => {
-    return projects.find(p => p._id === selectedProjectId);
-  }, [projects, selectedProjectId]);
-
-  const handleProjectUpdate = (updatedProject: unknown) => {
-    // Update project logic would go here
-    console.log('Project updated:', updatedProject);
-  };
-
-  // Memoize room object to prevent recreating on every render
-  const room = useMemo(() => ({ 
-    name: roomData?.name || currentRoom?.name || `Room ${roomId}`,
-    roomCode: roomData?.roomCode || '',
-    participants: roomData?.members || [] 
-  }), [roomId, currentRoom, roomData]);
-
-  if (!roomId) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen bg-dark text-white">
-        <h2 className="text-2xl font-bold mb-4">No Room Found</h2>
-        <Button onClick={() => navigate('/dashboard')}>Return to Dashboard</Button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex h-screen bg-dark overflow-hidden">
-      {/* Animated Background */}
-      <div className="fixed inset-0 bg-gradient-to-br from-dark via-dark-secondary to-dark opacity-50 pointer-events-none" />
-      
-      {/* Main Content */}
-      <div className="flex-1 flex relative z-10 w-full">
-        {/* Sidebar Toggle Button (appears when collapsed on mobile) */}
-        {isSidebarCollapsed && (
-          <Button
-            variant="ghost"
-            className="fixed left-2 top-4 z-30 bg-dark/80 backdrop-blur-xl border border-white/10 hover:bg-white/10 md:hidden"
-            onClick={() => setIsSidebarCollapsed(false)}
-          >
-            <ChevronRight className="w-5 h-5" />
-          </Button>
-        )}
-
-        {/* Mobile Backdrop Overlay */}
-        {!isSidebarCollapsed && (
-          <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-10 md:hidden"
-            onClick={() => setIsSidebarCollapsed(true)}
-          />
-        )}
-
-        {/* Sidebar */}
-        <div className={cn(
-          "bg-dark/50 backdrop-blur-xl border-r border-white/10 flex flex-col transition-all duration-300 flex-shrink-0",
-          isSidebarCollapsed ? "w-16" : "w-64",
-          "max-md:absolute max-md:left-0 max-md:top-0 max-md:h-full max-md:z-20",
-          isSidebarCollapsed && "max-md:-translate-x-full",
-          !isSidebarCollapsed && "max-md:shadow-2xl"
-        )}>
-          <div className={cn(
-            "flex-1 p-2 overflow-y-auto",
-            isSidebarCollapsed && "hidden md:block"
-          )}>{/* Navigation Section */}
-            <SidebarSection title="Navigation" defaultExpanded={true}>
-              <SidebarItem
-                icon={<BarChart2 className="w-5 h-5" />}
-                label="Dashboard"
-                isActive={activeTab === 'dashboard'}
-                onClick={() => setActiveTab('dashboard')}
-              />
-              <SidebarItem
-                icon={<Target className="w-5 h-5" />}
-                label="Project Tracker"
-                isActive={activeTab === 'project-tracker'}
-                onClick={() => setActiveTab('project-tracker')}
-              />
-              <SidebarItem
-                icon={<Users className="w-5 h-5" />}
-                label="Conference"
-                isActive={activeTab === 'conference'}
-                onClick={() => setActiveTab('conference')}
-              />
-              <SidebarItem
-                icon={<FileText className="w-5 h-5" />}
-                label="Editor"
-                isActive={activeTab === 'editor'}
-                onClick={() => setActiveTab('editor')}
-              />
-              <SidebarItem
-                icon={<Bot className="w-5 h-5" />}
-                label="AI Assistant"
-                isActive={activeTab === 'ai'}
-                onClick={() => setActiveTab('ai')}
-              />
-            </SidebarSection>
-
-            <SidebarSection title="Communication" defaultExpanded={true} className="mt-4">
-              <SidebarItem
-                icon={<MessageSquare className="w-5 h-5" />}
-                label="Chat"
-                isActive={activeTab === 'chat'}
-                onClick={() => setActiveTab('chat')}
-              />
-              <SidebarItem
-                icon={<Bot className="w-5 h-5" />}
-                label="AI Chat"
-                isActive={activeTab === 'ai-chat'}
-                onClick={() => setActiveTab('ai-chat')}
-              />
-            </SidebarSection>
-
-            <SidebarSection title="Workspace" defaultExpanded={true} className="mt-4">
-              <SidebarItem
-                icon={<CheckSquare className="w-5 h-5" />}
-                label="Tasks"
-                isActive={activeTab === 'tasks'}
-                onClick={() => setActiveTab('tasks')}
-              />
-              <SidebarItem
-                icon={<Brain className="w-5 h-5" />}
-                label="Brain Dump"
-                isActive={activeTab === 'brain-dump'}
-                onClick={() => setActiveTab('brain-dump')}
-              />
-            </SidebarSection>
-
-            <SidebarSection title="Resources" defaultExpanded={true} className="mt-4">
-              <SidebarItem
-                icon={<FileText className="w-5 h-5" />}
-                label="Files"
-                isActive={activeTab === 'files'}
-                onClick={() => setActiveTab('files')}
-              />
-              <SidebarItem
-                icon={<BookOpen className="w-5 h-5" />}
-                label="Library"
-                isActive={activeTab === 'library'}
-                onClick={() => setActiveTab('library')}
-              />
-            </SidebarSection>
-          </div>
-
-          {!isSidebarCollapsed && (
-            <Button
-              variant="ghost"
-              className="p-2 w-full flex justify-center hover:bg-white/5 flex-shrink-0 border-t border-white/5"
-              onClick={() => setIsSidebarCollapsed(true)}
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-          )}
+    // Projects management
+    const { projects } = useProjects();
+    const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+    const [roomData, setRoomData] = useState<any>(null);
+  
+    // Fetch room details from API
+    useEffect(() => {
+      const fetchRoomData = async () => {
+        try {
+          const token = localStorage.getItem('authToken');
+          if (!token || !roomId) return;
+  
+          const response = await fetch(`http://localhost:4001/api/rooms/${roomId}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
           
+          const data = await response.json();
+          if (data.success) {
+            setRoomData(data.room);
+          }
+        } catch (error) {
+          console.error('Failed to fetch room data:', error);
+        }
+      };
+  
+      fetchRoomData();
+    }, [roomId]);
+  
+    // Update roomData when currentRoom changes (via socket)
+    useEffect(() => {
+      if (currentRoom && roomData && currentRoom.id === roomData._id) {
+        // Only update if name or description changed to avoid unnecessary re-renders
+        if (currentRoom.name !== roomData.name || currentRoom.description !== roomData.description) {
+          setRoomData((prev: any) => ({
+            ...prev,
+            name: currentRoom.name,
+            description: currentRoom.description
+          }));
+        }
+      }
+    }, [currentRoom, roomData]);
+  
+    const isHost = useMemo(() => {
+      if (!user || !roomData) return false;
+      // Check createdBy directly or members array
+      if (roomData.createdBy === user._id) return true;
+      // Also check members array if createdBy matches string vs object
+      return roomData.members?.some((m: any) => m.userId._id === user._id && m.role === 'host') || roomData.createdBy === user._id;
+    }, [user, roomData]);
+  
+    const handleRoomUpdated = (updatedRoom: any) => {
+      setRoomData(updatedRoom);
+    };
+  
+    useEffect(() => {
+      if (roomId && isConnected) {
+        console.log(`🚪 Joining room ${roomId}`);
+        joinRoom(roomId);
+      }
+      
+      // Cleanup: leave room when component unmounts or roomId changes
+      return () => {
+        if (roomId && isConnected) {
+          console.log(`👋 Leaving room ${roomId} (cleanup)`);
+          leaveRoom(roomId);
+        }
+      };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [roomId, isConnected]);
+    
+    const selectedProject = useMemo(() => {
+      return projects.find(p => p._id === selectedProjectId);
+    }, [projects, selectedProjectId]);
+  
+    const handleProjectUpdate = (updatedProject: unknown) => {
+      // Update project logic would go here
+      console.log('Project updated:', updatedProject);
+    };
+  
+    // Memoize room object to prevent recreating on every render
+    const room = useMemo(() => ({
+      name: roomData?.name || currentRoom?.name || `Room ${roomId}`,
+      roomCode: roomData?.roomCode || '',
+      description: roomData?.description || '',
+      participants: roomData?.members || [] 
+    }), [roomId, currentRoom, roomData]);
+  
+    if (!roomId) {
+      return (
+        <div className="flex flex-col items-center justify-center h-screen bg-dark text-white">
+          <h2 className="text-2xl font-bold mb-4">No Room Found</h2>
+          <Button onClick={() => navigate('/dashboard')}>Return to Dashboard</Button>
+        </div>
+      );
+    }
+  
+    return (
+      <div className="flex h-screen bg-dark overflow-hidden">
+        {/* Animated Background */}
+        <div className="fixed inset-0 bg-gradient-to-br from-dark via-dark-secondary to-dark opacity-50 pointer-events-none" />
+        
+        {/* Main Content */}
+        <div className="flex-1 flex relative z-10 w-full">
+          {/* Sidebar Toggle Button (appears when collapsed on mobile) */}
           {isSidebarCollapsed && (
             <Button
               variant="ghost"
-              className="hidden md:flex p-2 w-full justify-center hover:bg-white/5 flex-shrink-0 border-t border-white/5"
+              className="fixed left-2 top-4 z-30 bg-dark/80 backdrop-blur-xl border border-white/10 hover:bg-white/10 md:hidden"
               onClick={() => setIsSidebarCollapsed(false)}
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-5 h-5" />
             </Button>
           )}
-        </div>
-
-        {/* Content Area */}
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* Header */}
-          <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-6 py-3 sm:py-4 bg-dark/80 backdrop-blur-xl border-b border-white/10 gap-3 sm:gap-0 flex-shrink-0">
-            <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
-              <Button 
-                variant="ghost" 
-                onClick={() => navigate('/dashboard')} 
-                className="gap-2 text-sm sm:text-base"
-                size="sm"
+  
+          {/* Mobile Backdrop Overlay */}
+          {!isSidebarCollapsed && (
+            <div 
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-10 md:hidden"
+              onClick={() => setIsSidebarCollapsed(true)}
+            />
+          )}
+  
+          {/* Sidebar */}
+          <div className={cn(
+            "bg-dark/50 backdrop-blur-xl border-r border-white/10 flex flex-col transition-all duration-300 flex-shrink-0",
+            isSidebarCollapsed ? "w-16" : "w-64",
+            "max-md:absolute max-md:left-0 max-md:top-0 max-md:h-full max-md:z-20",
+            isSidebarCollapsed && "max-md:-translate-x-full",
+            !isSidebarCollapsed && "max-md:shadow-2xl"
+          )}>
+            <div className={cn(
+              "flex-1 p-2 overflow-y-auto",
+              isSidebarCollapsed && "hidden md:block"
+            )}>{/* Navigation Section */}
+              <SidebarSection title="Navigation" defaultExpanded={true}>
+                <SidebarItem
+                  icon={<BarChart2 className="w-5 h-5" />}
+                  label="Dashboard"
+                  isActive={activeTab === 'dashboard'}
+                  onClick={() => setActiveTab('dashboard')}
+                />
+                <SidebarItem
+                  icon={<Target className="w-5 h-5" />}
+                  label="Project Tracker"
+                  isActive={activeTab === 'project-tracker'}
+                  onClick={() => setActiveTab('project-tracker')}
+                />
+                <SidebarItem
+                  icon={<Users className="w-5 h-5" />}
+                  label="Conference"
+                  isActive={activeTab === 'conference'}
+                  onClick={() => setActiveTab('conference')}
+                />
+                <SidebarItem
+                  icon={<FileText className="w-5 h-5" />}
+                  label="Editor"
+                  isActive={activeTab === 'editor'}
+                  onClick={() => setActiveTab('editor')}
+                />
+                <SidebarItem
+                  icon={<Bot className="w-5 h-5" />}
+                  label="AI Assistant"
+                  isActive={activeTab === 'ai'}
+                  onClick={() => setActiveTab('ai')}
+                />
+              </SidebarSection>
+  
+              <SidebarSection title="Communication" defaultExpanded={true} className="mt-4">
+                <SidebarItem
+                  icon={<MessageSquare className="w-5 h-5" />}
+                  label="Chat"
+                  isActive={activeTab === 'chat'}
+                  onClick={() => setActiveTab('chat')}
+                />
+                <SidebarItem
+                  icon={<Bot className="w-5 h-5" />}
+                  label="AI Chat"
+                  isActive={activeTab === 'ai-chat'}
+                  onClick={() => setActiveTab('ai-chat')}
+                />
+              </SidebarSection>
+  
+              <SidebarSection title="Workspace" defaultExpanded={true} className="mt-4">
+                <SidebarItem
+                  icon={<CheckSquare className="w-5 h-5" />}
+                  label="Tasks"
+                  isActive={activeTab === 'tasks'}
+                  onClick={() => setActiveTab('tasks')}
+                />
+                <SidebarItem
+                  icon={<Brain className="w-5 h-5" />}
+                  label="Brain Dump"
+                  isActive={activeTab === 'brain-dump'}
+                  onClick={() => setActiveTab('brain-dump')}
+                />
+              </SidebarSection>
+  
+              <SidebarSection title="Resources" defaultExpanded={true} className="mt-4">
+                <SidebarItem
+                  icon={<FileText className="w-5 h-5" />}
+                  label="Files"
+                  isActive={activeTab === 'files'}
+                  onClick={() => setActiveTab('files')}
+                />
+                <SidebarItem
+                  icon={<BookOpen className="w-5 h-5" />}
+                  label="Library"
+                  isActive={activeTab === 'library'}
+                  onClick={() => setActiveTab('library')}
+                />
+              </SidebarSection>
+            </div>
+  
+            {!isSidebarCollapsed && (
+              <Button
+                variant="ghost"
+                className="p-2 w-full flex justify-center hover:bg-white/5 flex-shrink-0 border-t border-white/5"
+                onClick={() => setIsSidebarCollapsed(true)}
               >
                 <ChevronLeft className="w-4 h-4" />
-                <span className="hidden sm:inline">Back to Dashboard</span>
-                <span className="sm:hidden">Back</span>
               </Button>
-              <h1 className="text-lg sm:text-xl font-semibold text-white truncate">{room?.name || `Room ${roomId}`}</h1>
-              {room?.roomCode && (
-                <Badge variant="outline" className="text-xs sm:text-sm font-mono text-theme-primary border-theme-primary bg-theme-primary/10">
-                  {room.roomCode}
-                </Badge>
-              )}
-            </div>
-            <div className="flex items-center gap-3 sm:gap-6 w-full sm:w-auto justify-between sm:justify-end">
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400 animate-pulse' : 'bg-red-500'}`} />
-                <span className="text-xs sm:text-sm text-white/60">{isConnected ? 'Connected' : 'Disconnected'}</span>
-              </div>
-              <PresenceAvatarGroup members={room.participants} onlineUsers={onlineUsers} />
-              <Button 
-                variant="outline"
-                onClick={() => setIsConferencePanelOpen(true)}
-                className="border-theme-primary/30 hover:bg-theme-primary/10 text-theme-primary hover:border-theme-primary text-sm"
-                size="sm"
+            )}
+            
+            {isSidebarCollapsed && (
+              <Button
+                variant="ghost"
+                className="hidden md:flex p-2 w-full justify-center hover:bg-white/5 flex-shrink-0 border-t border-white/5"
+                onClick={() => setIsSidebarCollapsed(false)}
               >
-                <Video className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Join Call</span>
+                <ChevronRight className="w-4 h-4" />
               </Button>
-            </div>
-          </header>
-
+            )}
+          </div>
+  
+          {/* Content Area */}
+          <div className="flex-1 flex flex-col min-w-0">
+            {/* Header */}
+            <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-6 py-3 sm:py-4 bg-dark/80 backdrop-blur-xl border-b border-white/10 gap-3 sm:gap-0 flex-shrink-0">
+              <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
+                <Button 
+                  variant="ghost" 
+                  onClick={() => navigate('/dashboard')} 
+                  className="gap-2 text-sm sm:text-base"
+                  size="sm"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  <span className="hidden sm:inline">Back to Dashboard</span>
+                  <span className="sm:hidden">Back</span>
+                </Button>
+                <h1 className="text-lg sm:text-xl font-semibold text-white truncate">{room?.name || `Room ${roomId}`}</h1>
+                {room?.roomCode && (
+                  <Badge variant="outline" className="text-xs sm:text-sm font-mono text-theme-primary border-theme-primary bg-theme-primary/10">
+                    {room.roomCode}
+                  </Badge>
+                )}
+              </div>
+              <div className="flex items-center gap-3 sm:gap-6 w-full sm:w-auto justify-between sm:justify-end">
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400 animate-pulse' : 'bg-red-500'}`} />
+                  <span className="text-xs sm:text-sm text-white/60">{isConnected ? 'Connected' : 'Disconnected'}</span>
+                </div>
+                <PresenceAvatarGroup members={room.participants} onlineUsers={onlineUsers} />
+                
+                {isHost && (
+                  <RoomSettingsModal 
+                    roomId={roomId} 
+                    currentName={room.name}
+                    currentDescription={room.description}
+                    onRoomUpdated={handleRoomUpdated}
+                  />
+                )}
+  
+                <Button 
+                  variant="outline"
+                  onClick={() => setIsConferencePanelOpen(true)}
+                  className="border-theme-primary/30 hover:bg-theme-primary/10 text-theme-primary hover:border-theme-primary text-sm"
+                  size="sm"
+                >
+                  <Video className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Join Call</span>
+                </Button>
+              </div>
+            </header>
           {/* Main Content Area */}
           <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">
             {activeTab === 'chat' && (
