@@ -236,6 +236,18 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
         });
       });
 
+      newSocket.on('inactivity-disconnect', (data: { message: string }) => {
+        console.warn('💤 Received inactivity disconnect:', data.message);
+        toast.warning("Session Timeout", {
+          description: data.message,
+          duration: Infinity, // Keep it visible until user dismisses or refreshes
+          action: {
+            label: "Refresh",
+            onClick: () => window.location.reload()
+          }
+        });
+      });
+
       newSocket.on('error', (error) => {
         console.error('❌ Socket error:', error);
       });

@@ -273,7 +273,13 @@ collaboration-platform/
 ## 📝 Recent Changes
 
 ### November 22, 2025 (Session 5)
-1. **Verified Multi-User Functionality**
+1. **Implemented Activity Timeout**
+   - Backend tracks socket activity timestamp
+   - Automatically disconnects users after 5 minutes of inactivity
+   - Frontend displays persistent warning toast with "Refresh" action upon timeout
+   - Added `inactivity-disconnect` socket event
+
+2. **Verified Multi-User Functionality**
    - Successfully ran multi-user simulation script (`test-multi-user.js`)
    - Verified real-time messaging between 2 distinct users
    - Confirmed typing indicators work across sockets
@@ -365,30 +371,14 @@ collaboration-platform/
 
 ### High Priority
 
-1. **Implement Activity Timeout** (User requested)
-
-   - [ ] Add inactivity timer (5 minutes)
-   - [ ] Track last activity timestamp
-   - [ ] Auto-disconnect inactive users
-   - [ ] Show inactive status to room members
-
-2. **Multi-User Testing**
-   - [x] Test with 2+ users in same room
-   - [x] Verify message broadcasting works correctly
-   - [x] Test join/leave notifications
-   - [x] Test simultaneous messaging
-
-### Medium Priority
-
-3. **Room Features**
-
+1. **Room Features** (Moved from Medium Priority)
    - [ ] Display room member list
    - [ ] Show online/offline status
    - [ ] Add room settings (rename, delete)
    - [ ] Add ability to remove members (host only)
    - [ ] Room search functionality
 
-4. **Chat Features**
+2. **Chat Features**
 
    - [ ] Typing indicators
    - [ ] Message read receipts
