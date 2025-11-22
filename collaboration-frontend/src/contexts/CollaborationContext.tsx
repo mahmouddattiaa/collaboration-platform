@@ -3,19 +3,21 @@ import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
 import { SOCKET_URL } from "@/config/api";
 import { useAuth } from "@/hooks/useAuth";
+import roomService from '@/services/roomService';
 
 // Types
 export interface User {
   _id: string;
   name: string;
   email: string;
-  avatar?: string;
+  profilePicture?: string;
 }
 
 export interface Message {
   user: User;
   message: string;
   timestamp: Date;
+  _id?: string; // Added ID for keys
 }
 
 export interface Room {
@@ -31,9 +33,13 @@ interface CollaborationContextType {
   currentRoom: Room | null;
   isConnected: boolean;
   messages: Message[];
-  joinRoom: (roomId: string) => void;
+  typingUsers: { userId: string; userName: string }[];
+  onlineUsers: User[]; // Added onlineUsers
+  joinRoom: (roomId: string) => Promise<void>;
   leaveRoom: (roomId: string) => void;
   sendMessage: (roomId: string, content: string) => void;
+  startTyping: (roomId: string) => void;
+  stopTyping: (roomId: string) => void;
 }
 
 const CollaborationContext = createContext<CollaborationContextType>({
@@ -41,9 +47,13 @@ const CollaborationContext = createContext<CollaborationContextType>({
   currentRoom: null,
   isConnected: false,
   messages: [],
-  joinRoom: () => {},
+  typingUsers: [],
+  onlineUsers: [], // Initial state
+  joinRoom: async () => {},
   leaveRoom: () => {},
-  sendMessage: () => {}
+  sendMessage: () => {},
+  startTyping: () => {},
+  stopTyping: () => {},
 });
 
 export function CollaborationProvider({ children }: { children: React.ReactNode }) {
@@ -51,9 +61,11 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
   const [currentRoom, setCurrentRoom] = useState<Room | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [typingUsers, setTypingUsers] = useState<{ userId: string; userName: string }[]>([]);
+  const [onlineUsers, setOnlineUsers] = useState<User[]>([]); // State for online users
   const { user } = useAuth();
 
-  const joinRoom = useCallback((roomId: string) => {
+  const joinRoom = useCallback(async (roomId: string) => {
     if (!socket) {
       console.error('❌ Cannot join room: socket not initialized');
       return;
@@ -78,7 +90,29 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
       messages: [],
       createdAt: new Date()
     });
-    setMessages([]);
+    setTypingUsers([]); // Clear typing users on room switch
+    setOnlineUsers([]); // Clear online users on room switch
+    
+    // Fetch message history
+    try {
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        const history = await roomService.getRoomMessages(roomId, token);
+        const formattedMessages = history.map((msg: any) => ({
+          user: msg.sender,
+          message: msg.content,
+          timestamp: new Date(msg.createdAt),
+          _id: msg._id
+        }));
+        setMessages(formattedMessages);
+        console.log(`📜 Loaded ${formattedMessages.length} messages from history`);
+      }
+    } catch (error) {
+      console.error('❌ Failed to load message history:', error);
+      toast.error('Failed to load chat history');
+      setMessages([]);
+    }
+
     console.log(`✅ Room state updated: ${roomId}`);
   }, [socket, currentRoom]);
 
@@ -91,12 +125,26 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
     socket.emit('leave-room', roomId);
     setCurrentRoom(null);
     setMessages([]);
+    setTypingUsers([]);
+    setOnlineUsers([]);
     console.log(`✅ Left room: ${roomId}`);
   }, [socket]);
 
   const sendMessage = useCallback((roomId: string, message: string) => {
     if (!socket) return;
     socket.emit('send-message', { roomId, message });
+    // Stop typing immediately after sending
+    socket.emit('typing-stop', roomId);
+  }, [socket]);
+
+  const startTyping = useCallback((roomId: string) => {
+    if (!socket) return;
+    socket.emit('typing-start', roomId);
+  }, [socket]);
+
+  const stopTyping = useCallback((roomId: string) => {
+    if (!socket) return;
+    socket.emit('typing-stop', roomId);
   }, [socket]);
 
   useEffect(() => {
@@ -134,6 +182,24 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
       newSocket.on('receive-message', (message: Message) => {
         console.log('📨 Received message:', message);
         setMessages((prevMessages) => [...prevMessages, message]);
+        // Also remove sender from typing list if they were there
+        setTypingUsers((prev) => prev.filter(u => u.userId !== message.user._id));
+      });
+
+      newSocket.on('user-typing', (data: { userId: string, userName: string }) => {
+        setTypingUsers((prev) => {
+          if (prev.some(u => u.userId === data.userId)) return prev;
+          return [...prev, data];
+        });
+      });
+
+      newSocket.on('user-stopped-typing', (data: { userId: string }) => {
+        setTypingUsers((prev) => prev.filter(u => u.userId !== data.userId));
+      });
+
+      newSocket.on('room-users-update', (users: User[]) => {
+        console.log('👥 Active users updated:', users);
+        setOnlineUsers(users);
       });
 
       newSocket.on('user-joined-notification', (notification: { title: string, message: string }) => {
@@ -194,9 +260,13 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
     currentRoom,
     isConnected,
     messages,
+    typingUsers,
+    onlineUsers,
     joinRoom,
     leaveRoom,
-    sendMessage
+    sendMessage,
+    startTyping,
+    stopTyping
   };
 
   return (

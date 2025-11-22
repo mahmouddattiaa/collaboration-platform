@@ -117,6 +117,32 @@ exports.getRoomById = async (req, res, next) => {
   }
 };
 
+const Message = require("../models/Message");
+
+exports.getRoomMessages = async (req, res, next) => {
+  try {
+    const { roomId } = req.params;
+    const { limit = 50, before } = req.query;
+
+    const query = { roomId };
+    if (before) {
+      query.createdAt = { $lt: new Date(before) };
+    }
+
+    const messages = await Message.find(query)
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit))
+      .populate('sender', 'name email _id');
+
+    res.status(200).json({
+      success: true,
+      data: messages.reverse() // Return in chronological order
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getUserRooms = async (req, res, next) => {
   try {
     const userId = req.user._id;

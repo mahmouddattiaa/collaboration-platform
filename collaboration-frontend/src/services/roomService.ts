@@ -42,6 +42,12 @@ class RoomService {
     return response.data || [];
   }
 
+  // Get room messages
+  async getRoomMessages(roomId: string, token: string): Promise<any[]> {
+    const response = await apiClient.get<any>(`/api/rooms/${roomId}/messages`, token);
+    return response.data || [];
+  }
+
   // Update room
   async updateRoom(roomId: string, updates: Partial<Room>, token: string): Promise<Room> {
     const response = await apiClient.patch<Room>(`/api/rooms/${roomId}`, updates, token);

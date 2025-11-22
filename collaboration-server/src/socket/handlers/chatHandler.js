@@ -2,13 +2,38 @@ module.exports = (io, socket) => {
   // Track which rooms the user is in
   socket.currentRooms = new Set();
 
-  socket.on("join-room", (roomId) => {
+  // Helper to broadcast active users in a room
+  const broadcastRoomUsers = async (roomId) => {
+    try {
+      const sockets = await io.in(roomId).fetchSockets();
+      // Use a Map to ensure unique users (in case user has multiple tabs open)
+      const uniqueUsers = new Map();
+      
+      sockets.forEach(s => {
+        if (s.user) {
+          uniqueUsers.set(s.user._id.toString(), {
+            _id: s.user._id,
+            name: s.user.name,
+            email: s.user.email,
+            profilePicture: s.user.profilePicture || s.user.avatar // Handle both for now
+          });
+        }
+      });
+
+      io.to(roomId).emit("room-users-update", Array.from(uniqueUsers.values()));
+    } catch (error) {
+      console.error(`Error broadcasting room users for room ${roomId}:`, error);
+    }
+  };
+
+  socket.on("join-room", async (roomId) => {
     console.log(
       `🔔 Received join-room event from ${socket.user.name} for room ${roomId}`
     );
 
     // Leave previous rooms when joining a new one
-    socket.currentRooms.forEach((oldRoomId) => {
+    const previousRooms = Array.from(socket.currentRooms);
+    for (const oldRoomId of previousRooms) {
       socket.leave(oldRoomId);
       console.log(
         `👋 User ${socket.user.name} left previous room ${oldRoomId}`
@@ -17,7 +42,9 @@ module.exports = (io, socket) => {
         title: "User Left",
         message: `${socket.user.name} has left the room.`,
       });
-    });
+      // Update users list for the old room
+      await broadcastRoomUsers(oldRoomId);
+    }
     socket.currentRooms.clear();
 
     // Join the new room
@@ -42,9 +69,12 @@ module.exports = (io, socket) => {
       roomId,
       message: `Successfully joined room ${roomId}`,
     });
+
+    // Broadcast updated user list to the room
+    await broadcastRoomUsers(roomId);
   });
 
-  socket.on("leave-room", (roomId) => {
+  socket.on("leave-room", async (roomId) => {
     socket.leave(roomId);
     socket.currentRooms.delete(roomId);
     console.log(`👋 User ${socket.user.name} left room ${roomId}`);
@@ -53,26 +83,65 @@ module.exports = (io, socket) => {
       title: "User Left",
       message: `${socket.user.name} has left the room.`,
     });
+    
+    // Update users list for the room
+    await broadcastRoomUsers(roomId);
   });
 
-  socket.on("send-message", (data) => {
-    const { roomId, message } = data;
-    console.log(`💬 Message from ${socket.user.name} in room ${roomId}`);
+  socket.on("send-message", async (data) => {
+    try {
+      const { roomId, message } = data;
+      console.log(`💬 Message from ${socket.user.name} in room ${roomId}`);
 
-    io.to(roomId).emit("receive-message", {
-      user: socket.user,
-      message,
-      timestamp: new Date(),
+      // Import Message model (ensure it's required at the top if not already, but for this scope we can require it here or assume top-level requires are added)
+      const Message = require("../../models/Message");
+
+      const newMessage = await Message.create({
+        roomId,
+        sender: socket.user._id,
+        content: message
+      });
+
+      // Populate sender details for the frontend
+      await newMessage.populate('sender', 'name email _id');
+
+      io.to(roomId).emit("receive-message", {
+        _id: newMessage._id,
+        user: socket.user,
+        message: newMessage.content,
+        timestamp: newMessage.createdAt,
+      });
+    } catch (error) {
+      console.error("Error saving message:", error);
+      socket.emit("error", { message: "Failed to send message" });
+    }
+  });
+
+  socket.on("typing-start", (roomId) => {
+    socket.to(roomId).emit("user-typing", {
+      userId: socket.user._id,
+      userName: socket.user.name,
+    });
+  });
+
+  socket.on("typing-stop", (roomId) => {
+    socket.to(roomId).emit("user-stopped-typing", {
+      userId: socket.user._id,
     });
   });
 
   // When user disconnects, notify all their rooms
-  socket.on("disconnect", () => {
-    socket.currentRooms.forEach((roomId) => {
+  socket.on("disconnect", async () => {
+    const rooms = Array.from(socket.currentRooms);
+    for (const roomId of rooms) {
       socket.to(roomId).emit("user-left-notification", {
         title: "User Disconnected",
         message: `${socket.user.name} has disconnected.`,
       });
-    });
+      // Wait a brief moment for socket to be fully removed from io internal lists? 
+      // Actually 'disconnect' fires after disconnection logic, but let's just call broadcast.
+      // io.fetchSockets() should not return this socket anymore.
+      await broadcastRoomUsers(roomId);
+    }
   });
 };

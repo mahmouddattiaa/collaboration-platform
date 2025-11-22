@@ -30,7 +30,7 @@ class AuthService {
   async getProfile(token: string): Promise<User> {
     const response = await apiClient.get<any>('/api/auth/me', token);
     console.log('📥 Profile response:', response);
-    return response.user as User;
+    return (response as any).user as User;
   }
 
   // Token management
