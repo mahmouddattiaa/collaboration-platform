@@ -17,6 +17,8 @@ import { useCollaboration } from '@/contexts/CollaborationContext';
 import { RoomSettingsModal } from '@/components/room/RoomSettingsModal';
 import { useAuth } from '@/hooks/useAuth';
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed';
+import { ProjectBoard } from '@/components/workspace/ProjectBoard';
+import { projectService } from '@/services/projectService';
 
 interface BrainDumpIdea {
   id: number;
@@ -509,9 +511,19 @@ export function CollaborationRoomContent() {
                 </div>
 
                 {selectedProject ? (
-                  <PhasesAndRequirements
+                  <ProjectBoard
                     project={selectedProject}
-                    onProjectUpdate={handleProjectUpdate}
+                    onUpdate={(p) => {
+                       // Optimistic update locally if needed, or wait for socket
+                       console.log('Optimistic update:', p);
+                    }}
+                    onSave={async (p) => {
+                       try {
+                         await projectService.updateProject(p._id || (p as any).id, p);
+                       } catch (err) {
+                         console.error("Failed to save project", err);
+                       }
+                    }}
                   />
                 ) : (
                   <div className="text-center py-12 text-white/60">

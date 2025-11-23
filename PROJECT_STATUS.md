@@ -288,12 +288,19 @@ collaboration-platform/
 ## 📝 Recent Changes
 
 ### November 22, 2025 (Session 6)
-1. **Implemented Remove Member**
-   - Added backend endpoint `DELETE /rooms/:id/members/:userId`
-   - Added frontend integration in `RoomSettingsModal`
-   - Real-time removal handling (redirects removed user, updates list for others)
+1. **Revamped Project Tracker (Azure DevOps Style)**
+   - Implemented `ProjectBoard` with Kanban and Backlog views
+   - Added Phase/Sprint management selector
+   - Added prominent "Start Phase" and "Complete Phase" actions
+   - Simplified Task creation and management
+   - Removed legacy `PhasesAndRequirements` and `TasksTab` components
 
-2. **Implemented Room Settings**
+2. **Implemented Real-time Activity Feed**
+   - Added `Activity` model and `activityLogger`
+   - Added Live Feed widget to Dashboard
+   - Tracks Room creation, Member changes, Project updates
+
+3. **Implemented Room Settings**
    - Added "Settings" modal for room hosts
    - Implemented Room Rename and Room Delete functionality
    - Added backend routes (`PUT/DELETE`) with host verification
@@ -332,10 +339,10 @@ collaboration-platform/
 - [ ] **Read Receipts:** Show who has read the messages.
 
 ### 4. Project Tracker (Azure DevOps Style)
-- [ ] **Revamp UI:** Create a robust task/phase management interface.
-- [ ] **Phase Management:** Add buttons to "Start Phase".
-- [ ] **Task Management:** Add "Set Tasks" functionality.
-- [ ] **Tasks UI:** Fix the "messed up" UI (restore legacy/beautiful style).
+- [x] **Revamp UI:** Create a robust task/phase management interface.
+- [x] **Phase Management:** Add buttons to "Start Phase".
+- [x] **Task Management:** Add "Set Tasks" functionality.
+- [x] **Tasks UI:** Fix the "messed up" UI (restore legacy/beautiful style).
 
 ---
 
