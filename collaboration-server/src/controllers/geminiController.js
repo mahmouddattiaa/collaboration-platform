@@ -10,7 +10,7 @@ exports.generateContent = async (req, res, next) => {
     if (!prompt) {
       throw new BadRequestError('Prompt is required');
     }
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
@@ -26,11 +26,11 @@ exports.chatWithGemini = async (req, res, next) => {
     if (!history || !message) {
       throw new BadRequestError('History and message are required');
     }
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
     const chat = model.startChat({
       history: history,
       generationConfig: {
-        maxOutputTokens: 100,
+        maxOutputTokens: 1000,
       },
     });
     const result = await chat.sendMessage(message);
