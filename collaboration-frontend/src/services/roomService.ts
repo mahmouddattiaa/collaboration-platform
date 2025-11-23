@@ -1,4 +1,5 @@
 import apiClient from './apiClient';
+import { API_BASE_URL } from '@/config/api';
 import { 
   CreateRoomRequest, 
   CreateRoomResponse, 
@@ -69,11 +70,8 @@ class RoomService {
     const formData = new FormData();
     formData.append('file', file);
 
-    // We need to use fetch directly or update apiClient to handle FormData
-    // apiClient usually sets Content-Type: application/json which breaks FormData
-    // Let's handle it here or update apiClient. Let's do a direct fetch for now or cast.
-    
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4001'}/api/rooms/${roomId}/files`, {
+    // Use the configured API_BASE_URL
+    const response = await fetch(`${API_BASE_URL}/api/rooms/${roomId}/files`, {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${token}`

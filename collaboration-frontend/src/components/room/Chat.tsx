@@ -48,11 +48,11 @@ const MessageBubble = ({ message, isMe, roomMembers, onRead }: MessageBubbleProp
         const u = r.user as User | string; // It might be ID or Object
         // Try to find user in roomMembers if it's just an ID, or use the object
         if (typeof u === 'string') {
-            return roomMembers.find(m => m._id === u) || { name: 'Unknown' };
+            return roomMembers.find(m => m._id === u) || { name: 'Unknown', _id: 'unknown' };
         }
         return u;
       })
-      .filter(u => u._id !== message.user._id); // Exclude sender from the "Read by" list tooltip
+      .filter(u => (u as any)._id !== message.user._id); // Exclude sender from the "Read by" list tooltip
   }, [message.readBy, roomMembers, message.user._id]);
 
   const attachment = message.attachments?.[0];

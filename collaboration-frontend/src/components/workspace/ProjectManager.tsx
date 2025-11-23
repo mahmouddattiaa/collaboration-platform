@@ -38,7 +38,30 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [starredProjects, setStarredProjects] = useState<Set<number>>(new Set());
 
-  // ... (rest of component state)
+  // View state
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'timeline'>('grid');
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+  const [detailViewTab, setDetailViewTab] = useState<'overview' | 'tasks' | 'team' | 'budget' | 'risks' | 'timeline' | 'activity' | 'structure'>('overview');
+
+  // Form state
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingProjectId, setEditingProjectId] = useState<number | null>(null);
+  const [newProjectName, setNewProjectName] = useState('');
+  const [newProjectDescription, setNewProjectDescription] = useState('');
+  const [newProjectPriority, setNewProjectPriority] = useState<'low' | 'medium' | 'high' | 'critical'>('medium');
+  const [newProjectStartDate, setNewProjectStartDate] = useState('');
+  const [newProjectDueDate, setNewProjectDueDate] = useState('');
+  const [newProjectTags, setNewProjectTags] = useState('');
+  const [newProjectBudget, setNewProjectBudget] = useState('');
+  const [newProjectClient, setNewProjectClient] = useState('');
+  const [newProjectManager, setNewProjectManager] = useState('');
+  const [newProjectCategory, setNewProjectCategory] = useState('');
+
+  // Filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'all' | Project['status']>('all');
+  const [filterPriority, setFilterPriority] = useState<'all' | Project['priority']>('all');
+  const [sortBy, setSortBy] = useState<'date' | 'priority' | 'progress' | 'name'>('date');
 
   // Real-time Project Updates
   useEffect(() => {

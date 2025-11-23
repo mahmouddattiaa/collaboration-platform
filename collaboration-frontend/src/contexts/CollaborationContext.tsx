@@ -107,7 +107,14 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
       const token = localStorage.getItem('authToken');
       if (token) {
         const history = await roomService.getRoomMessages(roomId, token);
-        const formattedMessages = history.map((msg: any) => ({
+        const formattedMessages = history.map((msg: {
+          _id: string;
+          sender: User;
+          content: string;
+          createdAt: string;
+          readBy?: ReadReceipt[];
+          attachments?: Attachment[];
+        }) => ({
           _id: msg._id,
           user: msg.sender,
           message: msg.content,
@@ -185,7 +192,7 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
       newSocket.on('connect', () => setIsConnected(true));
       newSocket.on('disconnect', () => setIsConnected(false));
 
-      newSocket.on('receive-message', (message: any) => {
+      newSocket.on('receive-message', (message: Message) => {
         setMessages((prev) => [...prev, {
             _id: message._id,
             user: message.user,
@@ -210,7 +217,8 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
                     });
                     
                     if (!alreadyRead) {
-                        return {n                            ...msg,
+                        return {
+                            ...msg,
                             readBy: [...msg.readBy, { user: data.userId, readAt: new Date(data.readAt) }]
                         };
                     }
@@ -237,7 +245,7 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
       newSocket.on('user-left-notification', (n) => toast.info(n.title, { description: n.message }));
       newSocket.on('room-joined-confirmation', (d) => toast.success("Room Joined", { description: d.message }));
       
-      newSocket.on('room-deleted', (data) => {
+      newSocket.on('room-deleted', () => {
         toast.error("Room Deleted", { description: "This room has been deleted by the host." });
         navigate('/dashboard');
         setCurrentRoom(null);
@@ -286,6 +294,7 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
             setSocket(null);
         }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]); // removed socket from deps to avoid loop, logic depends on user mainly
 
   const value = {
