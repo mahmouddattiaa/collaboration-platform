@@ -2670,8 +2670,8 @@ const ActivityTab: React.FC<{
         <h3 className="text-lg font-semibold text-white mb-4">Activity Log</h3>
         <div className="space-y-2">
           {project.activityLog && project.activityLog.length > 0 ? (
-            project.activityLog.slice().reverse().map(activity => (
-              <div key={activity.id} className="flex items-start gap-3 text-sm">
+            project.activityLog.slice().reverse().map((activity, index) => (
+              <div key={(activity as any)._id || activity.id || `log-${index}-${new Date(activity.timestamp).getTime()}`} className="flex items-start gap-3 text-sm">
                 <Activity className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
                 <div className="flex-1">
                   <p className="text-white/80">
