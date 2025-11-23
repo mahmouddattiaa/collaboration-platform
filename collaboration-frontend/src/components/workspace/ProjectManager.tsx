@@ -1665,29 +1665,149 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
 
   return (
     <div className="w-full max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            className="text-white/60 hover:text-white"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </Button>
-          <div>
-            <h2 className="text-2xl font-bold text-white">{localProject.name}</h2>
-            <p className="text-sm text-white/60">{localProject.description}</p>
-          </div>
-        </div>
 
-        {/* Health Score */}
-        <div className={cn('px-4 py-2 rounded-lg border', healthBg)}>
-          <div className="text-xs text-white/60">Project Health</div>
-          <div className={cn('text-2xl font-bold', healthColor)}>{health}%</div>
-        </div>
+// ============================================================================
+// HELPER COMPONENTS (Restored)
+// ============================================================================
+
+function AddPhaseForm({ projectId, onAdd, existingPhases }: {
+  projectId: number;
+  onAdd: (projectId: number, phaseData: Partial<Phase>) => void;
+  existingPhases?: Phase[];
+}) {
+  const [isAdding, setIsAdding] = useState(false);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+
+  const handleSubmit = () => {
+    if (!name.trim()) return;
+    
+    const phaseData: Partial<Phase> = {
+      name,
+      description,
+      status: 'not-started',
+      type: 'sequential',
+      priority: 'medium'
+    };
+    
+    onAdd(projectId, phaseData);
+    setName('');
+    setDescription('');
+    setIsAdding(false);
+  };
+
+  if (!isAdding) {
+    return (
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setIsAdding(true)}
+        className="w-full border border-dashed border-white/10 text-white/40 hover:text-white hover:bg-white/5 hover:border-white/20 h-10"
+      >
+        <Plus className="w-4 h-4 mr-2" />
+        Add Phase
+      </Button>
+    );
+  }
+
+  return (
+    <div className="bg-dark/30 rounded-lg p-4 border border-white/10 space-y-3">
+      <Input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Phase Name"
+        className="bg-dark/50 border-white/10 h-9 text-sm text-white"
+        autoFocus
+      />
+      <textarea
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        placeholder="Description..."
+        className="w-full bg-dark/50 text-white placeholder:text-white/30 border border-white/10 rounded-lg p-2 min-h-[60px] focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none text-sm"
+      />
+      <div className="flex gap-2 justify-end">
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => setIsAdding(false)}
+          className="h-8 text-xs hover:bg-white/10"
+        >
+          Cancel
+        </Button>
+        <Button
+          size="sm"
+          onClick={handleSubmit}
+          disabled={!name.trim()}
+          className="h-8 text-xs bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+        >
+          Add Phase
+        </Button>
       </div>
+    </div>
+  );
+}
+
+function AddRequirementForm({ projectId, phaseId, onAdd }: {
+  projectId: number;
+  phaseId: number;
+  onAdd: (projectId: number, phaseId: number, title: string, priority: 'low' | 'medium' | 'high' | 'critical') => void;
+}) {
+  const [isAdding, setIsAdding] = useState(false);
+  const [title, setTitle] = useState('');
+  const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'critical'>('medium');
+
+  const handleSubmit = () => {
+    if (!title.trim()) return;
+    onAdd(projectId, phaseId, title, priority);
+    setTitle('');
+    setPriority('medium');
+    setIsAdding(false);
+  };
+
+  if (!isAdding) {
+    return (
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setIsAdding(true)}
+        className="w-full border border-dashed border-white/10 text-white/40 hover:text-white hover:bg-white/5 hover:border-white/20 h-8 text-xs"
+      >
+        <Plus className="w-3 h-3 mr-2" />
+        Add Task
+      </Button>
+    );
+  }
+
+  return (
+    <div className="bg-dark/20 rounded-lg p-2 border border-white/10 mt-2">
+      <Input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Task Title"
+        className="mb-2 bg-dark/50 border-white/10 h-7 text-xs text-white"
+        autoFocus
+      />
+      <div className="flex gap-2 justify-end">
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => setIsAdding(false)}
+          className="h-6 text-[10px] hover:bg-white/10"
+        >
+          Cancel
+        </Button>
+        <Button
+          size="sm"
+          onClick={handleSubmit}
+          disabled={!title.trim()}
+          className="h-6 text-[10px] bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+        >
+          Add
+        </Button>
+      </div>
+    </div>
+  );
+}
 
       {/* Tabs */}
       <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
