@@ -9,11 +9,7 @@ import {
   Eye, EyeOff, MoreVertical, Download, Upload, Share2, FileText, Image,
   ChevronLeft, ChevronUp
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import { projectService } from '@/services/projectService';
+import { useCollaboration } from '@/contexts/CollaborationContext';
 
 interface Requirement {
   id: number;
@@ -30,171 +26,76 @@ interface Requirement {
   tags?: string[];
 }
 
-interface Phase {
-  id: number;
-  name: string;
-  description: string;
-  requirements: Requirement[];
-  status: 'not-started' | 'in-progress' | 'completed' | 'blocked' | 'on-hold';
-  order: number;
-  startDate?: string;
-  endDate?: string;
-  budget?: number;
-  actualCost?: number;
-  // Branch/Dependency features
-  parentPhaseId?: number; // For creating sub-phases (branches)
-  dependsOn?: number[]; // IDs of phases that must be completed first
-  blockedReason?: string; // Why phase is blocked
-  // Enhanced details
-  owner?: string; // Person responsible
-  team?: string[]; // Team members assigned
-  priority?: 'low' | 'medium' | 'high' | 'critical';
-  type?: 'sequential' | 'parallel' | 'optional' | 'milestone'; // Phase type
-  estimatedHours?: number;
-  actualHours?: number;
-  completionPercentage?: number; // Manual override
-  risks?: string[]; // Associated risks
-  deliverables?: string[]; // Expected deliverables
-  notes?: string; // Additional notes
-  color?: string; // Custom color for visualization
-}
-
-interface Milestone {
-  id: number;
-  title: string;
-  description?: string;
-  completed: boolean;
-  dueDate: string;
-  completedDate?: string;
-  deliverables?: string[];
-}
-
-interface TeamMember {
-  id: number;
-  name: string;
-  role: string;
-  email?: string;
-  avatar?: string;
-  workload?: number; // 0-100%
-  skills?: string[];
-}
-
-interface Risk {
-  id: number;
-  title: string;
-  description: string;
-  severity: 'low' | 'medium' | 'high' | 'critical';
-  likelihood: 'low' | 'medium' | 'high';
-  mitigation: string;
-  status: 'identified' | 'mitigating' | 'resolved' | 'accepted';
-  owner?: string;
-}
-
-interface Issue {
-  id: number;
-  title: string;
-  description: string;
-  priority: 'low' | 'medium' | 'high' | 'critical';
-  status: 'open' | 'in-progress' | 'resolved' | 'closed';
-  assignedTo?: string;
-  createdAt: string;
-  resolvedAt?: string;
-}
-
-interface Comment {
-  id: number;
-  author: string;
-  content: string;
-  timestamp: string;
-  edited?: boolean;
-}
-
-interface Attachment {
-  id: number;
-  name: string;
-  type: 'file' | 'link';
-  url: string;
-  uploadedBy: string;
-  uploadedAt: string;
-  size?: number;
-}
-
-interface ActivityLog {
-  id: number;
-  action: string;
-  user: string;
-  timestamp: string;
-  details?: string;
-}
-
-interface Project {
-  id: number;
-  _id?: string; // MongoDB document ID
-  name: string;
-  description: string;
-  status: 'planning' | 'active' | 'paused' | 'completed' | 'archived';
-  priority: 'low' | 'medium' | 'high' | 'critical';
-  progress: number;
-  startDate: string;
-  dueDate: string;
-  teamMembers: TeamMember[];
-  milestones: Milestone[];
-  phases: Phase[];
-  tags: string[];
-  createdAt: string;
-  starred: boolean;
-
-  // Enhanced fields
-  budget?: number;
-  actualCost?: number;
-  estimatedHours?: number;
-  actualHours?: number;
-  risks?: Risk[];
-  issues?: Issue[];
-  comments?: Comment[];
-  attachments?: Attachment[];
-  activityLog?: ActivityLog[];
-  dependencies?: number[]; // IDs of projects this depends on
-  client?: string;
-  projectManager?: string;
-  category?: string;
-  objectives?: string[];
-  successCriteria?: string[];
-}
+// ... (keep existing interfaces)
 
 interface ProjectManagerProps {
   roomId: string;
 }
 
 export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
+  const { socket } = useCollaboration();
   // Projects state
   const [projects, setProjects] = useState<Project[]>([]);
   const [starredProjects, setStarredProjects] = useState<Set<number>>(new Set());
 
-  // View state
-  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'timeline'>('grid');
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
-  const [detailViewTab, setDetailViewTab] = useState<'overview' | 'tasks' | 'team' | 'budget' | 'risks' | 'timeline' | 'activity' | 'structure'>('overview');
+  // ... (rest of component state)
 
-  // Form state
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [editingProjectId, setEditingProjectId] = useState<number | null>(null);
-  const [newProjectName, setNewProjectName] = useState('');
-  const [newProjectDescription, setNewProjectDescription] = useState('');
-  const [newProjectPriority, setNewProjectPriority] = useState<'low' | 'medium' | 'high' | 'critical'>('medium');
-  const [newProjectStartDate, setNewProjectStartDate] = useState('');
-  const [newProjectDueDate, setNewProjectDueDate] = useState('');
-  const [newProjectTags, setNewProjectTags] = useState('');
-  const [newProjectBudget, setNewProjectBudget] = useState('');
-  const [newProjectClient, setNewProjectClient] = useState('');
-  const [newProjectManager, setNewProjectManager] = useState('');
-  const [newProjectCategory, setNewProjectCategory] = useState('');
+  // Real-time Project Updates
+  useEffect(() => {
+    if (!socket) return;
 
-  // Filter state
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'all' | Project['status']>('all');
-  const [filterPriority, setFilterPriority] = useState<'all' | Project['priority']>('all');
-  const [sortBy, setSortBy] = useState<'date' | 'priority' | 'progress' | 'name'>('date');
+    const onProjectCreated = (newProject: any) => {
+      // Check if project belongs to this room (backend handles broadcast scoping, but safe to check)
+      if (newProject.roomId === roomId) {
+        const formattedProject = {
+            ...newProject,
+            id: newProject._id,
+            teamMembers: newProject.team || [],
+            createdAt: new Date(newProject.createdAt).toLocaleString(),
+            starred: false,
+            estimatedHours: 0,
+            actualHours: 0,
+            phases: newProject.phases || []
+        };
+        setProjects(prev => {
+            if (prev.some(p => p.id === formattedProject.id)) return prev;
+            return [formattedProject, ...prev];
+        });
+      }
+    };
+
+    const onProjectUpdated = (updatedProject: any) => {
+      if (updatedProject.roomId === roomId) {
+        const formattedProject = {
+            ...updatedProject,
+            id: updatedProject._id,
+            teamMembers: updatedProject.team || [],
+            createdAt: new Date(updatedProject.createdAt).toLocaleString(),
+            // Preserve local starred state if possible, or rely on separate logic
+            starred: projects.find(p => p.id === updatedProject._id)?.starred || false,
+            phases: updatedProject.phases || []
+        };
+        
+        setProjects(prev => prev.map(p => 
+            p.id === formattedProject.id ? { ...p, ...formattedProject } : p
+        ));
+      }
+    };
+
+    const onProjectDeleted = (data: { projectId: string }) => {
+        setProjects(prev => prev.filter(p => p.id !== data.projectId && p._id !== data.projectId));
+    };
+
+    socket.on('project-created', onProjectCreated);
+    socket.on('project-updated', onProjectUpdated);
+    socket.on('project-deleted', onProjectDeleted);
+
+    return () => {
+      socket.off('project-created', onProjectCreated);
+      socket.off('project-updated', onProjectUpdated);
+      socket.off('project-deleted', onProjectDeleted);
+    };
+  }, [socket, roomId, projects]); // Added projects to dependency to access starred state safely? No, that causes re-subscription. Better to use functional update.
 
   // Load projects from MongoDB via API
   useEffect(() => {

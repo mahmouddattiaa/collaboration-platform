@@ -72,6 +72,12 @@ exports.createProject = async (req, res, next) => {
 
     await newProject.save();
 
+    // Broadcast project creation
+    const io = req.app.get("io");
+    if (io) {
+      io.to(roomId).emit("project-created", newProject);
+    }
+
     res.status(201).json({
       success: true,
       message: "Project created successfully",
@@ -130,6 +136,12 @@ exports.updateProject = async (req, res, next) => {
     // Save the project
     await project.save();
 
+    // Broadcast project update
+    const io = req.app.get("io");
+    if (io) {
+      io.to(project.roomId.toString()).emit("project-updated", project);
+    }
+
     res.status(200).json({
       success: true,
       message: "Project updated successfully",
@@ -153,6 +165,12 @@ exports.deleteProject = async (req, res, next) => {
 
     if (!project) {
       throw new NotFoundError("Project not found");
+    }
+
+    // Broadcast project deletion
+    const io = req.app.get("io");
+    if (io) {
+      io.to(project.roomId.toString()).emit("project-deleted", { projectId });
     }
 
     res.status(200).json({

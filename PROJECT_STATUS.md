@@ -288,14 +288,20 @@ collaboration-platform/
 ## 📝 Recent Changes
 
 ### November 22, 2025 (Session 6)
-1. **Implemented File Sharing (Google Cloud Storage)**
+1. **Implemented Real-time Project Management**
+   - Added socket events for `project-created`, `project-updated`, `project-deleted`
+   - Projects now sync instantly across all room members without refresh
+   - integrated `ProjectManager` with `CollaborationContext` socket
+   - Refined project scoping to ensure updates are strictly per-room
+
+2. **Implemented File Sharing (Google Cloud Storage)**
    - Integrated `@google-cloud/storage` for secure file persistence
    - Added file upload endpoint (`POST /api/rooms/:roomId/files`) using `multer` (memory storage)
    - Files are streamed directly to GCS bucket
    - Chat UI supports image previews and generic file download links
    - Real-time broadcasting of file attachments
 
-2. **Implemented Message Read Receipts**
+3. **Implemented Message Read Receipts**
    - Added WhatsApp-style read receipts (Gray/Blue ticks)
    - 1 Gray Tick: Sent
    - 2 Gray Ticks: Read by some users
@@ -441,10 +447,10 @@ collaboration-platform/
    - [ ] Message editing/deletion
 
 5. **Project Management Integration**
-   - [ ] Link projects to rooms
-   - [ ] Task management
-   - [ ] Brain dump feature
-   - [ ] Project tracking
+   - [x] Link projects to rooms
+   - [x] Task management
+   - [x] Brain dump feature
+   - [x] Project tracking
 
 ### Low Priority
 
