@@ -86,7 +86,8 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
             phases: newProject.phases || []
         };
         setProjects(prev => {
-            if (prev.some(p => p.id === formattedProject.id)) return prev;
+            // Prevent duplicates by checking both _id and id
+            if (prev.some(p => p.id === formattedProject.id || p._id === formattedProject.id)) return prev;
             return [formattedProject, ...prev];
         });
       }
@@ -1171,7 +1172,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
 
             return (
               <div
-                key={project.id}
+                key={project._id || project.id}
                 className={cn(
                   'bg-gradient-to-br from-dark-secondary/80 to-dark/50 backdrop-blur-xl border rounded-xl p-4 sm:p-5',
                   'transition-all group hover:scale-[1.02] hover:shadow-2xl cursor-pointer',
