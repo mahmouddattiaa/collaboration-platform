@@ -4,7 +4,7 @@ const multer = require('multer');
 const Room = require('../models/CollaborationRoom');
 const auth = require('../middleware/auth');
 const { createRoom, joinRoom, getRoomById, getUserRooms, getRoomMessages, updateRoom, deleteRoom, removeMember, getRoomActivities } = require('../controllers/roomController');
-const { uploadFile } = require('../controllers/fileController');
+const { uploadFile, getRoomFiles, deleteFile, restoreFile, permanentlyDeleteFile } = require('../controllers/fileController');
 
 // Configure multer for memory storage
 const upload = multer({
@@ -20,11 +20,15 @@ router.get('/', auth, getUserRooms);        // NEW: Get user's rooms
 router.get('/:roomId', auth, getRoomById);
 router.get('/:roomId/messages', auth, getRoomMessages); // NEW: Get room messages
 router.get('/:roomId/activities', auth, getRoomActivities);
+router.get('/:roomId/files', auth, getRoomFiles);
 router.put('/:roomId', auth, updateRoom);
 router.delete('/:roomId', auth, deleteRoom);
 router.delete('/:roomId/members/:userId', auth, removeMember);
 
-// File upload route
+// File routes
 router.post('/:roomId/files', auth, upload.single('file'), uploadFile);
+router.delete('/files/:fileId', auth, deleteFile);
+router.put('/files/:fileId/restore', auth, restoreFile);
+router.delete('/files/:fileId/permanent', auth, permanentlyDeleteFile);
 
 module.exports = router;

@@ -19,6 +19,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed';
 import { ProjectBoard } from '@/components/workspace/ProjectBoard';
 import { AIChat } from '@/components/chat/AIChat';
+import { FileLibrary } from '@/components/files/FileLibrary';
 import { projectService } from '@/services/projectService';
 
 interface BrainDumpIdea {
@@ -531,11 +532,7 @@ export function CollaborationRoomContent() {
               </div>
             )}
             {activeTab === 'files' && (
-              <div className="text-center text-white/60">
-                <FileText className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 opacity-50" />
-                <h3 className="text-lg sm:text-xl font-semibold mb-2 text-white">📁 File Sharing</h3>
-                <p className="text-sm sm:text-base">Share and collaborate on files</p>
-              </div>
+              <FileLibrary roomId={roomId} />
             )}
             {activeTab === 'library' && (
               <div className="text-center text-white/60">

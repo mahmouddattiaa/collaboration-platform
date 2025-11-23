@@ -86,6 +86,27 @@ class RoomService {
 
     return await response.json();
   }
+
+  // Get files
+  async getFiles(roomId: string, token: string, deleted: boolean = false): Promise<any[]> {
+    const response = await apiClient.get<any>(`/api/rooms/${roomId}/files?deleted=${deleted}`, token);
+    return response.data || [];
+  }
+
+  // Soft delete file
+  async deleteFile(fileId: string, token: string): Promise<void> {
+    await apiClient.delete(`/api/rooms/files/${fileId}`, token);
+  }
+
+  // Restore file
+  async restoreFile(fileId: string, token: string): Promise<void> {
+    await apiClient.put(`/api/rooms/files/${fileId}/restore`, {}, token);
+  }
+
+  // Permanently delete file
+  async permanentlyDeleteFile(fileId: string, token: string): Promise<void> {
+    await apiClient.delete(`/api/rooms/files/${fileId}/permanent`, token);
+  }
 }
 
 // Create and export room service instance
