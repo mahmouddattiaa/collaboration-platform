@@ -3,7 +3,7 @@ import { useCollaboration, Message, User } from '@/contexts/CollaborationContext
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Check, CheckCheck, Info } from 'lucide-react';
+import { Send, Check, CheckCheck, Info, Paperclip, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useInView } from 'framer-motion';
@@ -55,6 +55,8 @@ const MessageBubble = ({ message, isMe, roomMembers, onRead }: MessageBubbleProp
       .filter(u => u._id !== message.user._id); // Exclude sender from the "Read by" list tooltip
   }, [message.readBy, roomMembers, message.user._id]);
 
+  const attachment = message.attachments?.[0];
+
   return (
     <div
       ref={ref}
@@ -79,6 +81,36 @@ const MessageBubble = ({ message, isMe, roomMembers, onRead }: MessageBubbleProp
             {message.user.name}
           </p>
         )}
+        
+        {attachment ? (
+          <div className="mb-2">
+            {attachment.type === 'image' ? (
+              <a href={attachment.url} target="_blank" rel="noopener noreferrer">
+                <img 
+                  src={attachment.url} 
+                  alt="Shared Image" 
+                  className="rounded-lg max-h-60 object-cover border border-white/10 hover:opacity-90 transition-opacity"
+                />
+              </a>
+            ) : (
+              <a 
+                href={attachment.url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 p-3 bg-black/20 rounded-lg border border-white/10 hover:bg-black/30 transition-colors"
+              >
+                <div className="p-2 bg-theme-primary/20 rounded-lg">
+                  <FileText className="w-5 h-5 text-theme-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{attachment.name}</p>
+                  <p className="text-xs text-white/50">Click to download</p>
+                </div>
+              </a>
+            )}
+          </div>
+        ) : null}
+
         <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{message.message}</p>
         
         <div className="flex items-center justify-end gap-1 mt-1 select-none">
@@ -120,11 +152,12 @@ const MessageBubble = ({ message, isMe, roomMembers, onRead }: MessageBubbleProp
 };
 
 export function Chat() {
-  const { currentRoom, messages, sendMessage, isConnected, startTyping, stopTyping, typingUsers, onlineUsers, markMessagesRead } = useCollaboration();
+  const { currentRoom, messages, sendMessage, isConnected, startTyping, stopTyping, typingUsers, onlineUsers, markMessagesRead, uploadFile } = useCollaboration();
   const { user } = useAuth();
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -164,6 +197,14 @@ export function Chat() {
 
   const handleRead = (messageId: string) => {
     markMessagesRead([messageId]);
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      await uploadFile(file);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   return (
@@ -244,6 +285,23 @@ export function Chat() {
       {/* Input Area */}
       <div className="p-4 bg-dark/60 border-t border-white/10 backdrop-blur-md">
         <form onSubmit={handleSendMessage} className="flex items-center gap-3 relative">
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            onChange={handleFileSelect}
+          />
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-9 w-9 text-white/60 hover:text-white hover:bg-white/10 rounded-full"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={!isConnected}
+          >
+            <Paperclip className="h-4 w-4" />
+          </Button>
+          
           <Input
             type="text"
             placeholder={isConnected ? 'Type a message...' : 'Connecting...'}

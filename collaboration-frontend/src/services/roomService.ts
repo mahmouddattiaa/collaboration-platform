@@ -63,6 +63,31 @@ class RoomService {
   async removeMember(roomId: string, userId: string, token: string): Promise<void> {
     await apiClient.delete(`/api/rooms/${roomId}/members/${userId}`, token);
   }
+
+  // Upload file
+  async uploadFile(roomId: string, file: File, token: string): Promise<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // We need to use fetch directly or update apiClient to handle FormData
+    // apiClient usually sets Content-Type: application/json which breaks FormData
+    // Let's handle it here or update apiClient. Let's do a direct fetch for now or cast.
+    
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4001'}/api/rooms/${roomId}/files`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`
+            // Content-Type header must NOT be set manually for FormData, browser sets it with boundary
+        },
+        body: formData
+    });
+
+    if (!response.ok) {
+        throw new Error('File upload failed');
+    }
+
+    return await response.json();
+  }
 }
 
 // Create and export room service instance

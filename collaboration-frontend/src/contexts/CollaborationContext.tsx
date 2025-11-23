@@ -19,12 +19,19 @@ export interface ReadReceipt {
   readAt: Date;
 }
 
+export interface Attachment {
+  url: string;
+  type: 'image' | 'file';
+  name: string;
+}
+
 export interface Message {
   _id: string;
   user: User;
   message: string;
   timestamp: Date;
   readBy: ReadReceipt[];
+  attachments?: Attachment[];
 }
 
 export interface Room {
@@ -49,6 +56,7 @@ interface CollaborationContextType {
   startTyping: (roomId: string) => void;
   stopTyping: (roomId: string) => void;
   markMessagesRead: (messageIds: string[]) => void;
+  uploadFile: (file: File) => Promise<void>;
 }
 
 const CollaborationContext = createContext<CollaborationContextType>({
@@ -64,6 +72,7 @@ const CollaborationContext = createContext<CollaborationContextType>({
   startTyping: () => {},
   stopTyping: () => {},
   markMessagesRead: () => {},
+  uploadFile: async () => {},
 });
 
 export function CollaborationProvider({ children }: { children: React.ReactNode }) {
@@ -103,7 +112,8 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
           user: msg.sender,
           message: msg.content,
           timestamp: new Date(msg.createdAt),
-          readBy: msg.readBy || []
+          readBy: msg.readBy || [],
+          attachments: msg.attachments || []
         }));
         setMessages(formattedMessages);
       }
@@ -148,6 +158,20 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
     });
   }, [socket, currentRoom]);
 
+  const uploadFile = useCallback(async (file: File) => {
+    if (!currentRoom) return;
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+
+    try {
+      await roomService.uploadFile(currentRoom.id, file, token);
+      // Message is broadcasted via socket, no manual state update needed here
+    } catch (error) {
+      console.error('File upload failed:', error);
+      toast.error("File Upload Failed");
+    }
+  }, [currentRoom]);
+
   useEffect(() => {
     if (user) {
       const token = localStorage.getItem('authToken');
@@ -167,7 +191,8 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
             user: message.user,
             message: message.message,
             timestamp: new Date(message.timestamp),
-            readBy: message.readBy || []
+            readBy: message.readBy || [],
+            attachments: message.attachments || []
         }]);
         setTypingUsers((prev) => prev.filter(u => u.userId !== message.user._id));
       });
@@ -185,8 +210,7 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
                     });
                     
                     if (!alreadyRead) {
-                        return {
-                            ...msg,
+                        return {n                            ...msg,
                             readBy: [...msg.readBy, { user: data.userId, readAt: new Date(data.readAt) }]
                         };
                     }
@@ -276,7 +300,8 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
     sendMessage,
     startTyping,
     stopTyping,
-    markMessagesRead
+    markMessagesRead,
+    uploadFile
   };
 
   return (

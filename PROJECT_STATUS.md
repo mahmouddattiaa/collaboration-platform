@@ -288,7 +288,14 @@ collaboration-platform/
 ## 📝 Recent Changes
 
 ### November 22, 2025 (Session 6)
-1. **Implemented Message Read Receipts**
+1. **Implemented File Sharing (Google Cloud Storage)**
+   - Integrated `@google-cloud/storage` for secure file persistence
+   - Added file upload endpoint (`POST /api/rooms/:roomId/files`) using `multer` (memory storage)
+   - Files are streamed directly to GCS bucket
+   - Chat UI supports image previews and generic file download links
+   - Real-time broadcasting of file attachments
+
+2. **Implemented Message Read Receipts**
    - Added WhatsApp-style read receipts (Gray/Blue ticks)
    - 1 Gray Tick: Sent
    - 2 Gray Ticks: Read by some users
@@ -297,7 +304,7 @@ collaboration-platform/
    - Added tooltip showing exact list of users who read the message
    - Updated backend to track read status per user per message
 
-2. **Implemented Room Settings**
+3. **Implemented Room Settings**
    - Added "Settings" modal for room hosts
    - Implemented Room Rename and Room Delete functionality
    - Added backend routes (`PUT/DELETE`) with host verification
@@ -428,7 +435,7 @@ collaboration-platform/
 
    - [x] Typing indicators
    - [x] Message read receipts
-   - [ ] File sharing
+   - [x] File sharing
    - [ ] Image preview
    - [ ] Emoji support
    - [ ] Message editing/deletion
