@@ -1476,12 +1476,8 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
                                 </div>
                               ))}
 
-                              {/* Add New Requirement */}
-                              <AddRequirementForm
-                                projectId={project.id}
-                                phaseId={phase.id}
-                                onAdd={handleAddRequirement}
-                              />
+                              {/* Add New Requirement - Removed */}
+
 
                               {/* Phase Actions */}
                               <div className="flex gap-2 pt-2">
@@ -1514,13 +1510,8 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({ roomId }) => {
                   </div>
                 )}
 
-                {/* Add New Phase Button */}
-                <div className="mb-4">
-                  <AddPhaseForm
-                    projectId={project.id}
-                    onAdd={handleAddPhase}
-                  />
-                </div>
+                {/* Add New Phase Button - Removed */}
+
 
                 {/* Quick Stats Row */}
                 <div className="flex items-center justify-between text-xs text-white/50 mb-4 pt-3 border-t border-white/10">
