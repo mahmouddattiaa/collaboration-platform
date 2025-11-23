@@ -26,7 +26,7 @@ export function ActivityFeed({ roomId }: { roomId: string }) {
   useEffect(() => {
     const fetchActivities = async () => {
       try {
-        const token = localStorage.getItem('authToken');
+        const token = localStorage.getItem('authToken') || undefined;
         const response = await apiClient.get<any>(`/api/rooms/${roomId}/activities`, token);
         if (response.success) {
           setActivities(response.data);

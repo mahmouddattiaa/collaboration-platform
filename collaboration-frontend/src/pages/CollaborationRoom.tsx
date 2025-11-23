@@ -282,16 +282,15 @@ export function CollaborationRoomContent() {
         console.log('Project updated:', updatedProject);
       };
     
-      const completedTasks = useMemo(() => {
-        return projects.reduce((acc, p) => {
-          // Assuming project has tasks array. If not typed, might need 'any' or check schema.
-          // Based on ProjectManager, it seems tasks are not fully in project object yet or we need to fetch them.
-          // But let's assume for now or leave as 0 until tasks are wired up.
-          // The mock/types usually have tasks.
-          return acc + (p.tasks?.filter((t: any) => t.status === 'completed' || t.status === 'done').length || 0);
-        }, 0);
-      }, [projects]);
-    
+        const completedTasks = useMemo(() => {
+          return projects.reduce((acc, p) => {
+            // Assuming project has tasks array. If not typed, might need 'any' or check schema.
+            // Based on ProjectManager, it seems tasks are not fully in project object yet or we need to fetch them.
+            // But let's assume for now or leave as 0 until tasks are wired up.
+            // The mock/types usually have tasks.
+            return acc + ((p as any).tasks?.filter((t: any) => t.status === 'completed' || t.status === 'done').length || 0);
+          }, 0);
+        }, [projects]);    
       // Memoize room object to prevent recreating on every render
       const room = useMemo(() => ({ 
         name: roomData?.name || currentRoom?.name || `Room ${roomId}`,
