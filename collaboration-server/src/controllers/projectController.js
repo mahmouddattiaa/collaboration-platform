@@ -1,5 +1,6 @@
 const Project = require("../models/Project");
 const { BadRequestError, NotFoundError } = require('../utils/errors');
+const logActivity = require('../utils/activityLogger');
 
 // Get all projects for a room
 exports.getProjects = async (req, res, next) => {
@@ -77,6 +78,15 @@ exports.createProject = async (req, res, next) => {
     if (io) {
       io.to(roomId).emit("project-created", newProject);
     }
+
+    await logActivity(
+      io,
+      roomId,
+      req.user._id,
+      'CREATED_PROJECT',
+      `Project "${newProject.name}" created`,
+      { projectId: newProject._id }
+    );
 
     res.status(201).json({
       success: true,

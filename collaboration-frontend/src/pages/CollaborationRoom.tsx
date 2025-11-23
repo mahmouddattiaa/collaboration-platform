@@ -16,6 +16,7 @@ import { PresenceAvatarGroup } from '@/components/common/PresenceAvatarGroup';
 import { useCollaboration } from '@/contexts/CollaborationContext';
 import { RoomSettingsModal } from '@/components/room/RoomSettingsModal';
 import { useAuth } from '@/hooks/useAuth';
+import { ActivityFeed } from '@/components/dashboard/ActivityFeed';
 
 interface BrainDumpIdea {
   id: number;
@@ -649,19 +650,8 @@ export function CollaborationRoomContent() {
                 </div>
 
                 {/* Recent Activity */}
-                <div className="bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 rounded-2xl p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                      <Activity className="w-5 h-5 text-green-400" />
-                      Recent Activity
-                    </h3>
-                    <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Live</Badge>
-                  </div>
-                  <div className="text-center py-12 text-white/40">
-                    <Clock className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>No recent activity yet</p>
-                    <p className="text-sm mt-2">Start collaborating to see activity here</p>
-                  </div>
+                <div className="h-[400px]">
+                  <ActivityFeed roomId={roomId} />
                 </div>
               </div>
             )}

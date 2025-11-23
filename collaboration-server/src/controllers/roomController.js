@@ -1,5 +1,7 @@
 const Room = require("../models/CollaborationRoom");
 const { BadRequestError, NotFoundError } = require("../utils/errors");
+const logActivity = require('../utils/activityLogger');
+const Activity = require('../models/Activity');
 
 // Helper function to generate unique 6-digit room code
 const generateRoomCode = async () => {
@@ -41,6 +43,14 @@ exports.createRoom = async (req, res, next) => {
 
     await newRoom.save();
 
+    await logActivity(
+      req.app.get("io"),
+      newRoom._id,
+      req.user._id,
+      'CREATED_ROOM',
+      `Room "${name}" created`
+    );
+
     res.status(201).json({
       success: true,
       message: "Room created successfully",
@@ -70,7 +80,6 @@ exports.joinRoom = async (req, res, next) => {
     );
 
     if (isAlreadyMember) {
-      // User is already a member, just return the room
       return res.status(200).json({
         success: true,
         message: "Already a member of this room",
@@ -80,6 +89,14 @@ exports.joinRoom = async (req, res, next) => {
 
     // Add user as a new member
     await room.addMember(req.user._id, "participant");
+
+    await logActivity(
+      req.app.get("io"),
+      room._id,
+      req.user._id,
+      'JOINED_ROOM',
+      'User joined the room'
+    );
 
     res.status(200).json({
       success: true,
@@ -170,12 +187,8 @@ exports.updateRoom = async (req, res, next) => {
     const room = await Room.findById(roomId);
     if (!room) throw new NotFoundError("Room not found");
 
-    // Check if user is host
-    // Assuming createdBy is the host, or checking the members array for 'host' role
-    // Based on createRoom, createdBy is set. Let's use that or the members list.
-    // The model has createdBy, let's stick to that for ownership.
     if (room.createdBy.toString() !== userId.toString()) {
-      throw new Error("Only the room creator can update settings"); // Should be ForbiddenError ideally
+      throw new Error("Only the room creator can update settings");
     }
 
     if (name) room.name = name;
@@ -183,7 +196,6 @@ exports.updateRoom = async (req, res, next) => {
 
     await room.save();
 
-    // Broadcast update to room members
     const io = req.app.get("io");
     if (io) {
       io.to(roomId).emit("room-updated", {
@@ -192,6 +204,14 @@ exports.updateRoom = async (req, res, next) => {
         description: room.description
       });
     }
+
+    await logActivity(
+      io,
+      roomId,
+      userId,
+      'UPDATED_ROOM',
+      'Room settings updated'
+    );
 
     res.status(200).json({
       success: true,
@@ -217,11 +237,12 @@ exports.deleteRoom = async (req, res, next) => {
 
     await Room.findByIdAndDelete(roomId);
 
-    // Broadcast delete event to room members
     const io = req.app.get("io");
     if (io) {
       io.to(roomId).emit("room-deleted", { roomId });
     }
+
+    // Cannot log activity for deleted room easily as room is gone, skipping
 
     res.status(200).json({
       success: true,
@@ -240,28 +261,29 @@ exports.removeMember = async (req, res, next) => {
     const room = await Room.findById(roomId);
     if (!room) throw new NotFoundError("Room not found");
 
-    // Check if requester is host
     const isHost = room.createdBy.toString() === requesterId.toString();
     if (!isHost) {
       throw new Error("Only the room host can remove members");
     }
 
-    // Prevent removing self (host should delete room instead)
     if (userId === requesterId.toString()) {
       throw new Error("Host cannot be removed. Delete the room instead.");
     }
 
     await room.removeMember(userId);
 
-    // Broadcast member removed event
     const io = req.app.get("io");
     if (io) {
       io.to(roomId).emit("member-removed", { userId });
-      
-      // Also force disconnect the removed user if they are connected
-      // We can't easily get their socket ID here without a map, 
-      // but the client-side listener for 'member-removed' will handle the UI part.
     }
+
+    await logActivity(
+      io,
+      roomId,
+      requesterId,
+      'REMOVED_MEMBER',
+      'A member was removed from the room'
+    );
 
     res.status(200).json({
       success: true,
@@ -270,4 +292,16 @@ exports.removeMember = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+};
+
+exports.getRoomActivities = async (req, res, next) => {
+  try {
+    const { roomId } = req.params;
+    const activities = await Activity.find({ roomId })
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .populate('userId', 'name email profilePicture');
+      
+    res.status(200).json({ success: true, data: activities });
+  } catch (error) { next(error); }
 };
