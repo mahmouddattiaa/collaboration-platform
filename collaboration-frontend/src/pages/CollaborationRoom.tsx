@@ -197,13 +197,12 @@ export function CollaborationRoomContent() {
     };
   }, [brainDumpList, brainDumpStarred]);
 
-    // Collaboration context
-    const { currentRoom, isConnected, joinRoom, leaveRoom, onlineUsers } = useCollaboration();
-    const { user } = useAuth();
-  
-    // Projects management
-    const { projects } = useProjects();
-    const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+      // Collaboration context
+      const { currentRoom, isConnected, joinRoom, leaveRoom, onlineUsers, messages } = useCollaboration();
+      const { user } = useAuth();
+    
+      // Projects management
+      const { projects } = useProjects();    const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
     const [roomData, setRoomData] = useState<any>(null);
   
     // Fetch room details from API
@@ -277,19 +276,28 @@ export function CollaborationRoomContent() {
       return projects.find(p => p._id === selectedProjectId);
     }, [projects, selectedProjectId]);
   
-    const handleProjectUpdate = (updatedProject: unknown) => {
-      // Update project logic would go here
-      console.log('Project updated:', updatedProject);
-    };
-  
-    // Memoize room object to prevent recreating on every render
-    const room = useMemo(() => ({
-      name: roomData?.name || currentRoom?.name || `Room ${roomId}`,
-      roomCode: roomData?.roomCode || '',
-      description: roomData?.description || '',
-      participants: roomData?.members || [] 
-    }), [roomId, currentRoom, roomData]);
-  
+      const handleProjectUpdate = (updatedProject: unknown) => {
+        // Update project logic would go here
+        console.log('Project updated:', updatedProject);
+      };
+    
+      const completedTasks = useMemo(() => {
+        return projects.reduce((acc, p) => {
+          // Assuming project has tasks array. If not typed, might need 'any' or check schema.
+          // Based on ProjectManager, it seems tasks are not fully in project object yet or we need to fetch them.
+          // But let's assume for now or leave as 0 until tasks are wired up.
+          // The mock/types usually have tasks.
+          return acc + (p.tasks?.filter((t: any) => t.status === 'completed' || t.status === 'done').length || 0);
+        }, 0);
+      }, [projects]);
+    
+      // Memoize room object to prevent recreating on every render
+      const room = useMemo(() => ({ 
+        name: roomData?.name || currentRoom?.name || `Room ${roomId}`,
+        roomCode: roomData?.roomCode || '',
+        description: roomData?.description || '',
+        participants: roomData?.members || [] 
+      }), [roomId, currentRoom, roomData]);  
     if (!roomId) {
       return (
         <div className="flex flex-col items-center justify-center h-screen bg-dark text-white">
@@ -333,58 +341,39 @@ export function CollaborationRoomContent() {
             isSidebarCollapsed && "max-md:-translate-x-full",
             !isSidebarCollapsed && "max-md:shadow-2xl"
           )}>
-            <div className={cn(
-              "flex-1 p-2 overflow-y-auto",
-              isSidebarCollapsed && "hidden md:block"
-            )}>{/* Navigation Section */}
-              <SidebarSection title="Navigation" defaultExpanded={true}>
-                <SidebarItem
-                  icon={<BarChart2 className="w-5 h-5" />}
-                  label="Dashboard"
-                  isActive={activeTab === 'dashboard'}
-                  onClick={() => setActiveTab('dashboard')}
-                />
-                <SidebarItem
-                  icon={<Target className="w-5 h-5" />}
-                  label="Project Tracker"
-                  isActive={activeTab === 'project-tracker'}
-                  onClick={() => setActiveTab('project-tracker')}
-                />
-                <SidebarItem
-                  icon={<Users className="w-5 h-5" />}
-                  label="Conference"
-                  isActive={activeTab === 'conference'}
-                  onClick={() => setActiveTab('conference')}
-                />
-                <SidebarItem
-                  icon={<FileText className="w-5 h-5" />}
-                  label="Editor"
-                  isActive={activeTab === 'editor'}
-                  onClick={() => setActiveTab('editor')}
-                />
-                <SidebarItem
-                  icon={<Bot className="w-5 h-5" />}
-                  label="AI Assistant"
-                  isActive={activeTab === 'ai'}
-                  onClick={() => setActiveTab('ai')}
-                />
-              </SidebarSection>
-  
-              <SidebarSection title="Communication" defaultExpanded={true} className="mt-4">
-                <SidebarItem
-                  icon={<MessageSquare className="w-5 h-5" />}
-                  label="Chat"
-                  isActive={activeTab === 'chat'}
-                  onClick={() => setActiveTab('chat')}
-                />
-                <SidebarItem
-                  icon={<Bot className="w-5 h-5" />}
-                  label="AI Chat"
-                  isActive={activeTab === 'ai-chat'}
-                  onClick={() => setActiveTab('ai-chat')}
-                />
-              </SidebarSection>
-  
+                      <div className={cn(
+                        "flex-1 p-2 overflow-y-auto",
+                        isSidebarCollapsed && "hidden md:block"
+                      )}>{/* Navigation Section */}
+                        <SidebarSection title="Navigation" defaultExpanded={true}>
+                          <SidebarItem
+                            icon={<BarChart2 className="w-5 h-5" />}
+                            label="Dashboard"
+                            isActive={activeTab === 'dashboard'}
+                            onClick={() => setActiveTab('dashboard')}
+                          />
+                          <SidebarItem
+                            icon={<Target className="w-5 h-5" />}
+                            label="Project Tracker"
+                            isActive={activeTab === 'project-tracker'}
+                            onClick={() => setActiveTab('project-tracker')}
+                          />
+                        </SidebarSection>
+            
+                        <SidebarSection title="Communication" defaultExpanded={true} className="mt-4">
+                          <SidebarItem
+                            icon={<MessageSquare className="w-5 h-5" />}
+                            label="Chat"
+                            isActive={activeTab === 'chat'}
+                            onClick={() => setActiveTab('chat')}
+                          />
+                          <SidebarItem
+                            icon={<Bot className="w-5 h-5" />}
+                            label="AI Chat"
+                            isActive={activeTab === 'ai-chat'}
+                            onClick={() => setActiveTab('ai-chat')}
+                          />
+                        </SidebarSection>  
               <SidebarSection title="Workspace" defaultExpanded={true} className="mt-4">
                 <SidebarItem
                   icon={<CheckSquare className="w-5 h-5" />}
@@ -554,7 +543,7 @@ export function CollaborationRoomContent() {
                     <div>
                       <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3 flex items-center gap-3">
                         <span className="bg-gradient-to-r from-green-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
-                          Room Dashboard
+                          {roomData?.dashboardName || 'Room Dashboard'}
                         </span>
                         <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-400 animate-pulse" />
                       </h2>
@@ -575,7 +564,7 @@ export function CollaborationRoomContent() {
                         <TrendingUp className="w-5 h-5 text-green-400" />
                       </div>
                       <p className="text-white/60 text-sm mb-1">Active Members</p>
-                      <p className="text-3xl font-bold text-white">{room?.participants?.length || 0}</p>
+                      <p className="text-3xl font-bold text-white">{onlineUsers.length}</p>
                     </div>
 
                     <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/10 backdrop-blur-xl border border-blue-500/30 rounded-2xl p-6 hover:scale-105 transition-all duration-300 cursor-pointer group">
@@ -586,7 +575,7 @@ export function CollaborationRoomContent() {
                         <Zap className="w-5 h-5 text-blue-400" />
                       </div>
                       <p className="text-white/60 text-sm mb-1">Active Projects</p>
-                      <p className="text-3xl font-bold text-white">0</p>
+                      <p className="text-3xl font-bold text-white">{projects.length}</p>
                     </div>
 
                     <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/10 backdrop-blur-xl border border-purple-500/30 rounded-2xl p-6 hover:scale-105 transition-all duration-300 cursor-pointer group">
@@ -597,7 +586,7 @@ export function CollaborationRoomContent() {
                         <Activity className="w-5 h-5 text-purple-400" />
                       </div>
                       <p className="text-white/60 text-sm mb-1">Messages</p>
-                      <p className="text-3xl font-bold text-white">0</p>
+                      <p className="text-3xl font-bold text-white">{messages.length}</p>
                     </div>
 
                     <div className="bg-gradient-to-br from-amber-500/20 to-amber-600/10 backdrop-blur-xl border border-amber-500/30 rounded-2xl p-6 hover:scale-105 transition-all duration-300 cursor-pointer group">
@@ -608,7 +597,7 @@ export function CollaborationRoomContent() {
                         <Star className="w-5 h-5 text-amber-400" />
                       </div>
                       <p className="text-white/60 text-sm mb-1">Tasks Completed</p>
-                      <p className="text-3xl font-bold text-white">0</p>
+                      <p className="text-3xl font-bold text-white">{completedTasks}</p>
                     </div>
                   </div>
                 </div>

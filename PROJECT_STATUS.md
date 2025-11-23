@@ -288,41 +288,16 @@ collaboration-platform/
 ## 📝 Recent Changes
 
 ### November 22, 2025 (Session 6)
-1. **Implemented Real-time Project Management**
-   - Added socket events for `project-created`, `project-updated`, `project-deleted`
-   - Projects now sync instantly across all room members without refresh
-   - integrated `ProjectManager` with `CollaborationContext` socket
-   - Refined project scoping to ensure updates are strictly per-room
+1. **Implemented Remove Member**
+   - Added backend endpoint `DELETE /rooms/:id/members/:userId`
+   - Added frontend integration in `RoomSettingsModal`
+   - Real-time removal handling (redirects removed user, updates list for others)
 
-2. **Implemented File Sharing (Google Cloud Storage)**
-   - Integrated `@google-cloud/storage` for secure file persistence
-   - Added file upload endpoint (`POST /api/rooms/:roomId/files`) using `multer` (memory storage)
-   - Files are streamed directly to GCS bucket
-   - Chat UI supports image previews and generic file download links
-   - Real-time broadcasting of file attachments
-
-3. **Implemented Message Read Receipts**
-   - Added WhatsApp-style read receipts (Gray/Blue ticks)
-   - 1 Gray Tick: Sent
-   - 2 Gray Ticks: Read by some users
-   - 2 Blue Ticks: Read by ALL users in the room
-   - Implemented `useInView` to track message visibility
-   - Added tooltip showing exact list of users who read the message
-   - Updated backend to track read status per user per message
-
-3. **Implemented Room Settings**
+2. **Implemented Room Settings**
    - Added "Settings" modal for room hosts
    - Implemented Room Rename and Room Delete functionality
    - Added backend routes (`PUT/DELETE`) with host verification
    - Implemented real-time updates via socket events:
-     - `room-updated`: Updates room name/description for all members instantly
-     - `room-deleted`: Redirects all members to dashboard and shows alert
-   - Created Shadcn UI `Dialog`, `Label`, and `Tooltip` components
-
-3. **Implemented Remove Member**
-   - Added "Members" tab to Room Settings
-   - Hosts can remove participants
-   - Real-time removal updates (removed user is redirected)
 
 ### November 22, 2025 (Session 5)
 1. **Implemented Room Member List UI**
@@ -330,155 +305,37 @@ collaboration-platform/
    - Integrated `onlineUsers` from `CollaborationContext` with room members
    - Displays online/offline status indicators
    - Shows tooltips with user names and status
-   - Fallback support for when room member data is loading
-
-2. **Implemented Activity Timeout**
-   - Backend tracks socket activity timestamp
-   - Automatically disconnects users after 5 minutes of inactivity
-   - Frontend displays persistent warning toast with "Refresh" action upon timeout
-   - Added `inactivity-disconnect` socket event
-
-3. **Verified Multi-User Functionality**
-   - Successfully ran multi-user simulation script (`test-multi-user.js`)
-   - Verified real-time messaging between 2 distinct users
-   - Confirmed typing indicators work across sockets
-   - Confirmed online user count updates correctly (1 -> 2 users)
-   - Validated room isolation and joining flow
-
-### November 22, 2025 (Session 4)
-1. **Implemented Online User Status**
-   - Added `room-users-update` socket event
-   - Backend tracks and broadcasts connected users per room
-   - Frontend displays active user avatars in chat header
-   - Handles multiple tabs/windows for same user correctly
-
-### November 22, 2025 (Session 3)
-1. **Implemented Typing Indicators**
-   - Added `typing-start` and `typing-stop` socket events
-   - Updated `CollaborationContext` to track typing users
-   - Added visual indicator in `Chat.tsx` (e.g., "John is typing...")
-   - Added throttling to prevent event spam
-
-### November 22, 2025 (Session 2)
-1. **Implemented Message Persistence**
-   - Created `Message` model in MongoDB
-   - Updated `chatHandler` to save messages before broadcasting
-   - Added `GET /api/rooms/:roomId/messages` endpoint
-   - Updated `CollaborationContext` to fetch history on join
-   - Messages now survive page refreshes
-
-### November 22, 2025 (Session 1)
-
-1. **Added socket connection checks**
-
-   - Verify socket is connected before emitting events
-   - Added detailed logging for join/leave operations
-   - Frontend now checks `socket.connected` status
-
-2. **Implemented room join confirmation**
-
-   - Backend sends `room-joined-confirmation` event
-   - Frontend displays toast notification on successful join
-   - Added `📊 Active rooms` logging on backend
-
-3. **Enhanced debugging**
-   - Added extensive console logs throughout socket flow
-   - Backend logs: join/leave events, active rooms, user actions
-   - Frontend logs: emit events, confirmations, state updates
-
-### November 21, 2025
-
-1. **Fixed infinite join/leave loop**
-
-   - Removed `joinRoom`/`leaveRoom` from useEffect dependencies
-   - Added eslint-disable comment for intentional pattern
-   - Loop was caused by functions recreating on every render
-
-2. **Implemented room isolation**
-
-   - Backend filters rooms by `members.userId`
-   - Users only see rooms they created or joined
-   - WebSocket properly isolated per room
-
-3. **Created migration script**
-
-   - `migrateRoomCodes.js` to update existing rooms
-   - Successfully migrated 2 rooms with new codes
-   - Codes: 206898, 751042
-
-4. **Implemented 6-digit room codes**
-
-   - Changed from alphanumeric to numeric codes
-   - Range: 100000-999999
-   - Added uniqueness validation
-   - Updated UI to accept only numeric input
-
-5. **Fixed authentication system**
-
-   - Fixed CollaborationContext to use correct auth hook
-   - Fixed token lookup to use 'authToken' key
-   - Fixed response parsing in authService
-
-6. **Fixed rate limiting**
-   - Applied rate limiter to auth routes
-   - Increased limits for development
-   - Fixed JSON response format
 
 ---
 
-## 📋 To-Do List
+## 📋 To-Do List (Prioritized)
 
-### High Priority
+### 1. Room Dashboard (Current Focus)
+- [ ] **Fix Dashboard Name:** Use the specific `dashboardName` created during room setup, not the generic room name.
+- [ ] **Real-time Stats:** Implement live counters for:
+  - Active Projects
+  - Total Messages
+  - Tasks Completed
+  - Active Members (Real-time count)
+- [ ] **Live Activity Feed:** Implement a real-time feed showing recent actions (user joined, project created, task completed, etc.).
 
-1. **Room Features** (Moved from Medium Priority)
-   - [x] Display room member list
-   - [x] Show online/offline status
-   - [x] Add room settings (rename, delete)
-   - [ ] Add ability to remove members (host only)
-   - [ ] Room search functionality
+### 2. UI Cleanup & Organization
+- [ ] **Remove Unused Modules:**
+  - Conference
+  - Text Editor
+  - AI Assistant (Sidebar item)
+- [ ] **Implement AI Chat:** Dedicated AI Chat interface.
+- [ ] **Library & Files:** Implement File Library and "Deleted Files" (Trash) bin.
 
-2. **Chat Features**
+### 3. Chat Improvements (Fixes)
+- [ ] **Fix Latency:** Implement optimistic UI updates so messages appear instantly.
+- [ ] **Read Receipts:** Show who has read the messages.
 
-   - [x] Typing indicators
-   - [x] Message read receipts
-   - [x] File sharing
-   - [ ] Image preview
-   - [ ] Emoji support
-   - [ ] Message editing/deletion
-
-5. **Project Management Integration**
-   - [x] Link projects to rooms
-   - [x] Task management
-   - [x] Brain dump feature
-   - [x] Project tracking
-
-### Low Priority
-
-6. **UI/UX Polish**
-
-   - [ ] Remove debug console.logs
-   - [ ] Add loading skeletons
-   - [ ] Improve error messages
-   - [ ] Add animations
-   - [ ] Dark mode
-
-7. **Production Readiness**
-
-   - [ ] Add comprehensive error handling
-   - [ ] Implement proper logging system
-   - [ ] Add monitoring/analytics
-   - [ ] Performance optimization
-   - [ ] Security audit
-   - [ ] Add unit tests
-   - [ ] Add integration tests
-
-8. **Deployment**
-   - [ ] Deploy backend to Vercel
-   - [ ] Deploy frontend to Vercel
-   - [ ] Configure environment variables
-   - [ ] Set up production database
-   - [ ] Configure CORS for production
-   - [ ] Add rate limiting for production
+### 4. Project Tracker (Azure DevOps Style)
+- [ ] **Revamp UI:** Create a robust task/phase management interface.
+- [ ] **Phase Management:** Add buttons to "Start Phase".
+- [ ] **Task Management:** Add "Set Tasks" functionality.
+- [ ] **Tasks UI:** Fix the "messed up" UI (restore legacy/beautiful style).
 
 ---
 
