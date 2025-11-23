@@ -49,7 +49,7 @@ export function AIChat() {
       // Format history for Gemini API
       // Ensure roles are mapped correctly: 'user' -> 'user', 'model' -> 'model'
       const history = messages.map((msg) => ({
-        role: msg.role === 'user' ? 'user' : 'model',
+        role: (msg.role === 'user' ? 'user' : 'model') as 'user' | 'model',
         parts: msg.content,
       }));
 

@@ -32,6 +32,7 @@ export interface Message {
   timestamp: Date;
   readBy: ReadReceipt[];
   attachments?: Attachment[];
+  isPending?: boolean; // Optimistic UI flag
 }
 
 export interface Room {
@@ -140,10 +141,29 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
   }, [socket]);
 
   const sendMessage = useCallback((roomId: string, message: string) => {
-    if (!socket) return;
+    if (!socket || !user) return;
+
+    // Optimistic Update
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMessage: Message = {
+      _id: tempId,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        profilePicture: user.profilePicture
+      },
+      message: message,
+      timestamp: new Date(),
+      readBy: [],
+      isPending: true
+    };
+
+    setMessages(prev => [...prev, optimisticMessage]);
+
     socket.emit('send-message', { roomId, message });
     socket.emit('typing-stop', roomId);
-  }, [socket]);
+  }, [socket, user]);
 
   const startTyping = useCallback((roomId: string) => {
     if (!socket) return;
@@ -193,14 +213,32 @@ export function CollaborationProvider({ children }: { children: React.ReactNode 
       newSocket.on('disconnect', () => setIsConnected(false));
 
       newSocket.on('receive-message', (message: Message) => {
-        setMessages((prev) => [...prev, {
-            _id: message._id,
-            user: message.user,
-            message: message.message,
-            timestamp: new Date(message.timestamp),
-            readBy: message.readBy || [],
-            attachments: message.attachments || []
-        }]);
+        setMessages((prev) => {
+            const realMsg = {
+                _id: message._id,
+                user: message.user,
+                message: message.message,
+                timestamp: new Date(message.timestamp),
+                readBy: message.readBy || [],
+                attachments: message.attachments || []
+            };
+
+            // Find pending message from same user with same content
+            const pendingIndex = prev.findIndex(m => 
+                m.isPending && 
+                m.user._id === message.user._id && 
+                m.message === message.message
+            );
+
+            if (pendingIndex !== -1) {
+                // Replace pending with real
+                const newMessages = [...prev];
+                newMessages[pendingIndex] = realMsg;
+                return newMessages;
+            }
+            
+            return [...prev, realMsg];
+        });
         setTypingUsers((prev) => prev.filter(u => u.userId !== message.user._id));
       });
 

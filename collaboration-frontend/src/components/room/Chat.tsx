@@ -3,7 +3,7 @@ import { useCollaboration, Message, User } from '@/contexts/CollaborationContext
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Check, CheckCheck, Info, Paperclip, FileText } from 'lucide-react';
+import { Send, Check, CheckCheck, Info, Paperclip, FileText, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useInView } from 'framer-motion';
@@ -21,18 +21,14 @@ const MessageBubble = ({ message, isMe, roomMembers, onRead }: MessageBubbleProp
   const isInView = useInView(ref, { once: true, amount: 0.5 });
   
   useEffect(() => {
-    if (isInView && !isMe) {
-      // Check if I have already read it
-      // The context/socket logic handles the actual check, but we can optimize here
-      // But 'readBy' might not be updated yet in local state if we just loaded.
-      // We simply trigger onRead, context will filter if needed or backend will.
+    if (isInView && !isMe && !message.isPending) {
       onRead(message._id);
     }
-  }, [isInView, isMe, message._id, onRead]);
+  }, [isInView, isMe, message._id, onRead, message.isPending]);
 
   // Calculate Read Status
   const readCount = message.readBy?.length || 0;
-  const isSent = true; // If it's in the list, it's sent (saved)
+  const isSent = !message.isPending; // Check pending flag
   // Exclude sender from "all" count requirement
   const otherMembersCount = Math.max(0, roomMembers.length - 1); 
   // ReadBy usually includes sender if we auto-add them, so we check count
@@ -70,10 +66,11 @@ const MessageBubble = ({ message, isMe, roomMembers, onRead }: MessageBubbleProp
       )}
       <div
         className={cn(
-          'max-w-[75%] md:max-w-[60%] p-3 rounded-2xl shadow-sm relative group',
+          'max-w-[75%] md:max-w-[60%] p-3 rounded-2xl shadow-sm relative group transition-opacity duration-200',
           isMe
             ? 'bg-theme-primary text-white rounded-tr-none'
-            : 'bg-dark-secondary border border-white/10 text-gray-200 rounded-tl-none'
+            : 'bg-dark-secondary border border-white/10 text-gray-200 rounded-tl-none',
+          message.isPending && 'opacity-70'
         )}
       >
         {!isMe && (
@@ -119,6 +116,9 @@ const MessageBubble = ({ message, isMe, roomMembers, onRead }: MessageBubbleProp
           </span>
           
           {isMe && (
+            message.isPending ? (
+               <Clock className="w-3 h-3 text-white/60 animate-pulse" />
+            ) : (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -144,6 +144,7 @@ const MessageBubble = ({ message, isMe, roomMembers, onRead }: MessageBubbleProp
                 )}
               </Tooltip>
             </TooltipProvider>
+            )
           )}
         </div>
       </div>

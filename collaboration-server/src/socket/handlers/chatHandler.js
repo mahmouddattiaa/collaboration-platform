@@ -102,8 +102,11 @@ module.exports = (io, socket) => {
         readBy: [{ user: socket.user._id, readAt: new Date() }] // Sender has read it
       });
 
-      // Populate sender details for the frontend
-      await newMessage.populate('sender', 'name email _id');
+      // Populate sender details and readBy users for the frontend
+      await newMessage.populate([
+        { path: 'sender', select: 'name email _id' },
+        { path: 'readBy.user', select: 'name email avatar' }
+      ]);
 
       io.to(roomId).emit("receive-message", {
         _id: newMessage._id,
