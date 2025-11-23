@@ -18,6 +18,7 @@ import { RoomSettingsModal } from '@/components/room/RoomSettingsModal';
 import { useAuth } from '@/hooks/useAuth';
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed';
 import { ProjectBoard } from '@/components/workspace/ProjectBoard';
+import { AIChat } from '@/components/chat/AIChat';
 import { projectService } from '@/services/projectService';
 
 interface BrainDumpIdea {
@@ -486,11 +487,7 @@ export function CollaborationRoomContent() {
               </div>
             )}
             {activeTab === 'ai-chat' && (
-              <div className="text-center text-white/60">
-                <Bot className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 opacity-50" />
-                <h3 className="text-lg sm:text-xl font-semibold mb-2 text-white">🤖 AI Chat Assistant</h3>
-                <p className="text-sm sm:text-base">Chat with AI to help with your collaboration</p>
-              </div>
+              <AIChat />
             )}
             {activeTab === 'tasks' && (
               <div className="space-y-4">
